@@ -308,6 +308,8 @@ void EmployeeDataInput(PersonalData *pd, EmploymentContract *ec, Insurance *in, 
     getStringInput(pd->TaxNumber, sizeof(pd->TaxNumber), "Enter Tax Number: ");
     getStringInput(pd->PhoneNumber, sizeof(pd->PhoneNumber), "Enter Phone Number: ");
     getStringInput(pd->Email, sizeof(pd->Email), "Enter Email: ");
+    saveEmployeeToFile(pd, "dulieu_nhanvien.txt");
+    printf("Personal data input complete.\n");
     
 
     printf("\n--- ENTER EMPLOYMENT CONTRACT DATA ---\n");
