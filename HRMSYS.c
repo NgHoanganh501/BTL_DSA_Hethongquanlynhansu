@@ -29,6 +29,7 @@ const char* sexToString(Sex gender) {
 
 typedef struct {
     char Name[100];
+    char Code[100];
     char Birth[20]; // Store as dd/mm/yy
     Sex Gender;
     char NationalID[20];
@@ -102,7 +103,7 @@ struct EmployeeDataNode {
 };
 
 typedef struct {
-    char Name[100];
+    char Code[100];
     char CheckIn[10], CheckOut[10]; // Both store as xx:yy
     int Overtime;
 } WorkTime;
@@ -141,7 +142,7 @@ const char* astatusToString(LetterStatus letterstatus){
 }
 
 typedef struct {
-    char Name[100];
+    char Code[100];
     Letter AbsenceLetter;
     char AbsenceDate[30];
     LetterStatus letterstatus;
@@ -168,7 +169,7 @@ const char* cstatusToString(CourseStatus coursestatus){
 }
 
 typedef struct {
-    char Name[100];
+    char Code[100];
     char CourseName[100];
     int CourseTime; // Hours
     long long CourseFee;
@@ -196,7 +197,7 @@ const char* layoffreasonToString(LayOffReason reason){
 }
 
 typedef struct {
-    char Name[100];
+    char Code[100];
     char Date[30];
     LayOffReason Reason;
 } LayOff;
@@ -342,7 +343,7 @@ void WorkTimeInsert(WorkTime wt){
 
 void WorkTimeInput(WorkTime *wt){
     printf("\n--- ENTER WORKING TIME ---\n");
-    getStringInput(wt->Name, sizeof(wt->Name), "Enter Employee Name: ");
+    getStringInput(wt->Code, sizeof(wt->Code), "Enter Employee Name: ");
     getStringInput(wt->CheckIn, sizeof(wt->CheckIn), "Enter Checkin Time (xx:yy): ");
     getStringInput(wt->CheckOut, sizeof(wt->CheckOut), "Enter Checkout Time (xx:yy): ");
 
@@ -366,7 +367,7 @@ void DayOffInsert(DayOff doff){
 
 void DayOffInput(DayOff *doff){
     printf("\n--- ENTER DAY OFF DATA ---\n");
-    getStringInput(doff->Name, sizeof(doff->Name), "Enter Employee Name: ");
+    getStringInput(doff->Code, sizeof(doff->Code), "Enter Employee Name: ");
 
     int absenceletteryesno;
     printf("Yes/No Absence Letter (0: No, 1: Yes): ");
@@ -396,7 +397,7 @@ void EducationInsert(Education e){
 
 void EducationInput(Education *e){
     printf("\n--- ENTER EDUCATION DATA ---\n");
-    getStringInput(e->Name, sizeof(e->Name), "Enter Employee Name: ");
+    getStringInput(e->Code, sizeof(e->Code), "Enter Employee Name: ");
     getStringInput(e->CourseName, sizeof(e->CourseName), "Enter Course Name: ");
 
     printf("Enter Course Time (hrs): ");
@@ -427,7 +428,7 @@ void LayOffInsert(LayOff lo){
 
 void LayOffInput(LayOff *lo){
     printf("\n--- ENTER LAY OFF DATA ---\n");
-    getStringInput(lo->Name, sizeof(lo->Name), "Enter Employee Name: ");
+    getStringInput(lo->Code, sizeof(lo->Code), "Enter Employee Name: ");
     getStringInput(lo->Date, sizeof(lo->Date), "Enter Layoff Date: ");
 
     int rson;
@@ -438,6 +439,7 @@ void LayOffInput(LayOff *lo){
 }
 
 void EmployeeDataTraverse(){
+    printf("\nDISPLAYING EMPLOYEE DATA\n");
     int cnt = 1;
     struct EmployeeDataNode* index = EDNode;
     while(index != NULL){
@@ -466,20 +468,53 @@ void EmployeeDataTraverse(){
         printf("\nCode: %s", index->I.BHTN.Code);
         printf("\nPayment Ratio: %f", index->I.BHTN.PayLevel);
         printf("\nDate: %s\n", index->I.BHTN.InsuranceDate);
+        printf('\n');
         index = index->next;
         cnt++;
     }
 }
 
-void WorkTimeTraverse(){}
+void WorkTimeTraverse(){
+    printf("\nDISPLAYING TRACKING DATA\n");
+    struct WorkTimeNode* index = WTNode;
+    while(index != NULL){
+        printf("\nName: %s", index->WT.Code);
+        printf("\nCheckin: %s", index->WT.CheckIn);
+        printf("\nCheckout: %s", index->WT.CheckOut);
+        printf("\nOvertime: %d", index->WT.Overtime);
+        printf('\n');
+        index = index->next;
+    }
+}
 
-void DayOffTraverse(){}
+void DayOffTraverse(){
+    printf("\nDISPLAYING DAY OFF DATA\n");
+    struct DayOffNode* index = DONode;
+    while(index != NULL){
+        printf("\nName: %s", index->DOff.Code);
+        printf("\nLetter: %s", letterToString(index->DOff.AbsenceLetter));
+        printf("\nDate: %s", index->DOff.AbsenceDate);
+        printf("\nLetter Status: %s", astatusToString(index->DOff.letterstatus));
+        printf('\n');
+        index = index->next;
+    }
+}
 
-void EducationTraverse(){}
+void EducationTraverse(){
+    printf("\nDISPLAYING EDUCATION DATA\n");
+    struct EducationNode* index = ENode;
+    while(index != NULL){
+        printf("");
+    }
+}
 
-void LayOffTraverse(){}
+void LayOffTraverse(){
 
-void ReportPrint(){}
+}
+
+void ReportPrint(){
+
+}
 
 int main(){
     int choice1, choice2;
@@ -497,7 +532,9 @@ int main(){
         printf("1. Add New Data\n");
         printf("2. Display Data\n");
         printf("3. Find Data\n");
-        printf("4. Exit\n");
+        printf("4. Change Data\n");
+        printf("5. Delete Data");
+        printf("6. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice1);
         clear_input_buffer();
@@ -549,26 +586,38 @@ int main(){
                 printf("6. Return to previous options\n");
                 printf("Enter your choice: ");
                 scanf("%d", &choice2);
-
-                EmployeeDataTraverse();
-                break;
-            case 3:
+                
+                switch (choice2) {
+                    case 1:
+                        EmployeeDataTraverse();
+                        break;
+                    case 2:
+                        WorkTimeTraverse();
+                        break;
+                    case 3:
+                        DayOffTraverse();
+                        break;
+                    case 4:
+                        EducationTraverse();
+                        break;
+                    case 5:
+                        LayOffTraverse();
+                        break;
+                    case 6:
+                        break;
+                    default:
+                        printf("Invalid choice. Please try again.\n");
+                }
+            case 3: //Find
+            case 4: //Change
+            case 5: //Delete
+            case 6:
                 printf("Exiting program. Goodbye!\n");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-    } while (choice1 != 3);
-
-    // Free allocated memory before exiting
-    struct EmployeeDataNode* current = EDNode;
-    struct EmployeeDataNode* next;
-    while (current != NULL) {
-        next = current->next;
-        free(current);
-        current = next;
-    }
-    EDNode = NULL; // Set head to NULL after freeing
+    } while (choice1 != 6);
 
     return 0;
 }
