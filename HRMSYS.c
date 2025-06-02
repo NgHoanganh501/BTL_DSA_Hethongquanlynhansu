@@ -29,7 +29,7 @@ const char* sexToString(Sex gender) {
 
 typedef struct {
     char Name[100];
-    char Code[100];
+    char EmployeeID[100];
     char Birth[20]; // Store as dd/mm/yy
     Sex Gender;
     char NationalID[20];
