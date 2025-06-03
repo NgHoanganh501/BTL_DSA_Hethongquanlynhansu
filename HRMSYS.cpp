@@ -110,7 +110,7 @@ struct EmployeeDataNode {
 };
 
 typedef struct {
-    char Code[100];
+    char EmployeeID[100];
     char CheckIn[10], CheckOut[10]; // Both store as xx:yy
     int Overtime;
 } WorkTime;
@@ -149,7 +149,7 @@ const char* astatusToString(LetterStatus letterstatus){
 }
 
 typedef struct {
-    char Code[100];
+    char EmployeeID[100];
     Letter AbsenceLetter;
     char AbsenceDate[30];
     LetterStatus letterstatus;
@@ -176,7 +176,7 @@ const char* cstatusToString(CourseStatus coursestatus){
 }
 
 typedef struct {
-    char Code[100];
+    char EmployeeID[100];
     char CourseName[100];
     int CourseTime; // Hours
     long long CourseFee;
@@ -204,7 +204,7 @@ const char* layoffreasonToString(LayOffReason reason){
 }
 
 typedef struct {
-    char Code[100];
+    char EmployeeID[100];
     char Date[30];
     LayOffReason Reason;
 } LayOff;
@@ -349,9 +349,6 @@ void EmployeeDataInput(PersonalData *pd, EmploymentContract *ec, Insurance *in, 
     getStringInput(in->BHTN.InsuranceDate, sizeof(in->BHTN.InsuranceDate), "Enter Unemployment Insurance Date (dd/mm/yy - dd/mm/yy): ");
 
     printf("\n--- ENTER SALARY MANAGING DATA ---\n");
-    //printf("Enter Base Salary: ");
-    //scanf("%lld", &sm->BaseSalary);
-    //clear_input_buffer();
     sm->BaseSalary = ec->DealtSalary;
 
     printf("Enter Work Time This Month (in hours): ");
@@ -404,7 +401,7 @@ void WorkTimeInsert(WorkTime wt){
 
 void WorkTimeInput(WorkTime *wt){
     printf("\n--- ENTER WORKING TIME ---\n");
-    getStringInput(wt->Code, sizeof(wt->Code), "Enter Employee ID: ");
+    getStringInput(wt->EmployeeID, sizeof(wt->EmployeeID), "Enter Employee ID: ");
     getStringInput(wt->CheckIn, sizeof(wt->CheckIn), "Enter Checkin Time (xx:yy): ");
     getStringInput(wt->CheckOut, sizeof(wt->CheckOut), "Enter Checkout Time (xx:yy): ");
 
@@ -428,7 +425,7 @@ void DayOffInsert(DayOff doff){
 
 void DayOffInput(DayOff *doff){
     printf("\n--- ENTER DAY OFF DATA ---\n");
-    getStringInput(doff->Code, sizeof(doff->Code), "Enter Employee ID: ");
+    getStringInput(doff->EmployeeID, sizeof(doff->EmployeeID), "Enter Employee ID: ");
 
     int absenceletteryesno;
     printf("Yes/No Absence Letter (0: No, 1: Yes): ");
@@ -460,7 +457,7 @@ void EducationInsert(Education e){
 
 void EducationInput(Education *e){
     printf("\n--- ENTER EDUCATION DATA ---\n");
-    getStringInput(e->Code, sizeof(e->Code), "Enter Employee ID: ");
+    getStringInput(e->EmployeeID, sizeof(e->EmployeeID), "Enter Employee ID: ");
     getStringInput(e->CourseName, sizeof(e->CourseName), "Enter Course Name: ");
 
     printf("Enter Course Time (hrs): ");
@@ -491,7 +488,7 @@ void LayOffInsert(LayOff lo){
 
 void LayOffInput(LayOff *lo){
     printf("\n--- ENTER LAY OFF DATA ---\n");
-    getStringInput(lo->Code, sizeof(lo->Code), "Enter Employee ID: ");
+    getStringInput(lo->EmployeeID, sizeof(lo->EmployeeID), "Enter Employee ID: ");
     getStringInput(lo->Date, sizeof(lo->Date), "Enter Layoff Date: ");
 
     int rson;
@@ -546,7 +543,7 @@ void WorkTimeTraverse(){
     int cnt = 1;
     while(index != NULL){
         printf("\nWORK TIME RECORD %03d:\n", cnt);
-        printf("Employee ID: %s\n", index->WT.Code);
+        printf("Employee ID: %s\n", index->WT.EmployeeID);
         printf("\nCheckin: %s", index->WT.CheckIn);
         printf("\nCheckout: %s", index->WT.CheckOut);
         printf("\nOvertime: %d", index->WT.Overtime);
@@ -561,7 +558,7 @@ void DayOffTraverse(){
     struct DayOffNode* index = DONode;
     int cnt = 1;
     while(index != NULL){
-        printf("\nName: %s", index->DOff.Code);
+        printf("\nName: %s", index->DOff.EmployeeID);
         printf("\nLetter: %s", letterToString(index->DOff.AbsenceLetter));
         printf("\nDate: %s", index->DOff.AbsenceDate);
         printf("\nLetter Status: %s", astatusToString(index->DOff.letterstatus));
@@ -577,7 +574,7 @@ void EducationTraverse(){
     int cnt = 1;
     while(index != NULL){
         printf("\nEDUCATION RECORD %03d:\n", cnt);
-        printf("Employee ID: %s\n", index->E.Code);
+        printf("Employee ID: %s\n", index->E.EmployeeID);
         printf("Course Name: %s\n", index->E.CourseName);
         printf("Course Time: %d hours\n", index->E.CourseTime);
         printf("Course Fee: %lld\n", index->E.CourseFee);
@@ -594,7 +591,7 @@ void LayOffTraverse(){
     int cnt = 1;
     while(index != NULL){
         printf("\nLAYOFF RECORD %03d:\n", cnt);
-        printf("Employee ID: %s\n", index->LO.Code);
+        printf("Employee ID: %s\n", index->LO.EmployeeID);
         printf("Date: %s\n", index->LO.Date);
         printf("Reason: %s\n", layoffreasonToString(index->LO.Reason));
         printf("\n");
@@ -645,7 +642,6 @@ void ReportPrint(){
     printf("Total Salary Expenses: %lld\n", report.SalaryFee);
     printf("Total Insurance Fees: %.2f\n", report.InsuranceFee);
     printf("Total Education Fees: %lld\n", report.EducationFee);
-
 }
 
 void freeAllLists() {
@@ -691,8 +687,89 @@ void freeAllLists() {
     LONode = NULL;
 }
 
+struct EmployeeDataNode* FindData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct EmployeeDataNode* currentED = EDNode;
+    while (currentED != NULL) {
+        if (strcmp(currentED->PD.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentED; 
+        }
+        currentED = currentED->next;
+    }
+    
+    printf("No data found in Employee Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct WorkTimeNode* FindData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct WorkTimeNode* currentWT = WTNode;
+    while (currentWT != NULL) {
+        if (strcmp(currentWT->WT.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentWT; 
+        }
+        currentWT = currentWT->next;
+    }
+    
+    printf("No data found in Work Time Tracking Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct DayOffNode* FindData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct DayOffNode* currentDOff = DONode;
+    while (currentDOff != NULL) {
+        if (strcmp(currentDOff->DOff.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentDOff; 
+        }
+        currentDOff = currentDOff->next;
+    }
+    
+    printf("No data found in Day Off Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct EducationNode* FindData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct EducationNode* currentE = ENode;
+    while (currentE != NULL) {
+        if (strcmp(currentE->E.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentE; 
+        }
+        currentE = currentE->next;
+    }
+    
+    printf("No data found in Education Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct LayOffNode* FindData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct LayOffNode* currentLO = LONode;
+    while (currentLO != NULL) {
+        if (strcmp(currentLO->LO.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentLO; 
+        }
+        currentLO = currentLO->next;
+    }
+    
+    printf("No data found in Lay Off Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
 int main(){
-    int choice1, choice2;
+    int choice1, choice2, choice3;
+    char EmployeeID_tmp[100];
     PersonalData newPD;
     EmploymentContract newEC;
     Insurance newI;
@@ -706,8 +783,10 @@ int main(){
         printf("\n--- HUMAN RESOURCE MANAGING SYSTEM MENU ---\n");
         printf("1. Add New Data\n");
         printf("2. Display Data\n");
-        printf("3. Generate Report\n");
-        printf("4. Exit\n");
+        printf("3. Find and Update/Change Data\n");
+        printf("4. Delete an Employee\n");
+        printf("5. Generate Report\n");
+        printf("6. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice1);
         clear_input_buffer();
@@ -785,9 +864,44 @@ int main(){
                         printf("Invalid choice. Please try again.\n");
                 }
             case 3:
+                printf("\n--- HUMAN RESOURCE MANAGING SYSTEM MENU ---\n");
+                printf("\n--- FIND AND UPDATE/CHANGE DATA ---\n");
+                printf("1. Employee Data\n");
+                printf("2. Work Time Tracking Data\n");
+                printf("3. Dayoff Data\n");
+                printf("4. Education Data\n");
+                printf("5. Layoff Data\n");
+                printf("6. Back to previous options\n");
+                printf("Enter What You Want To Find: \n");
+                scanf("%d", &choice3);
+                clear_input_buffer();
+                getStringInput(EmployeeID_tmp, sizeof(EmployeeID_tmp), "Enter Employee ID: ");
+                switch (choice3) {
+                    case 1:
+                        struct EmployeeDataNode* foundEmployee = FindData(EmployeeID_tmp);
+                        // Change
+                    case 2: 
+                        struct WorkTimeNode* foundWorkTime = FindData(EmployeeID_tmp);
+                        // Change
+                    case 3:
+                        struct DayOffNode* foundDayOff = FindData(EmployeeID_tmp);
+                        // Change
+                    case 4:
+                        struct EducationNode* foundEducation = FindData(EmployeeID_tmp);
+                        // Change
+                    case 5:
+                        struct LayOffNode* foundLO = FindData(EmployeeID_tmp);
+                        // Change
+                    case 6: 
+                        break;
+                    default:
+                        printf("Invalid choice. Please try again.\n");
+                }
+                
+            case 5:
                 ReportPrint();
                 break;
-            case 4: 
+            case 6: 
                 printf("Exiting program. Goodbye!\n");
                 freeAllLists();
                 break;
