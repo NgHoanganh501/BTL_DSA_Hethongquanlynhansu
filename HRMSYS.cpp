@@ -283,6 +283,56 @@ void saveEmployeeToFile(const PersonalData* pd, const char* filename) {
     fclose(file);
 }
 
+void updateEmployeeFile(const PersonalData* pd, const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("Cannot open file to read!\n");
+        return;
+    }
+
+    FILE* tempFile = fopen("temp_nhanvien.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+
+    char line[512];
+    char employeeID[100];
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", employeeID);
+        if (strcmp(employeeID, pd->EmployeeID) == 0) {
+            fprintf(tempFile, "%s|%s|%s|%s|%s|%s|%s|%s\n",
+                pd->EmployeeID,
+                pd->Name,
+                pd->Birth,
+                sexToString(pd->Gender),
+                pd->NationalID,
+                pd->TaxNumber,
+                pd->PhoneNumber,
+                pd->Email
+            );
+            found = 1;
+        } else {
+            fprintf(tempFile, "%s", line);
+        }
+    }
+
+    fclose(file);
+    fclose(tempFile);
+
+    if (found) {
+        remove(filename);
+        rename("temp_nhanvien.txt", filename);
+        printf("Employee file updated successfully.\n");
+    } else {
+        remove("temp_nhanvien.txt");
+        printf("Employee ID not found in file.\n");
+    }
+}
+
 void generateEmployeeID(char* newID, const char* filename) {
     int lastID = getLastEmployeeID_FromFile(filename);
     sprintf(newID, "NV%04d", lastID + 1);
@@ -498,108 +548,379 @@ void LayOffInput(LayOff *lo){
     lo->Reason = (LayOffReason)rson;
 }
 
-void EmployeeDataTraverse(){
+void EmployeeDataTraverse(const char* employeeID){
     printf("\nDISPLAYING EMPLOYEE DATA\n");
-    int cnt = 1;
     struct EmployeeDataNode* index = EDNode;
-    while(index != NULL){
-        printf("\nEMPLOYEE %03d:\n", cnt);
-        printf("\nName: %s", index->PD.Name);
-        printf("Employee ID: %s\n", index->PD.EmployeeID);
-        printf("\n\nBirth: %s", index->PD.Birth);
-        printf("\nGender: %s", sexToString(index->PD.Gender));
-        printf("\nNationalID: %s", index->PD.NationalID);
-        printf("\nTax Number: %s", index->PD.TaxNumber);
-        printf("\nPhone: %s", index->PD.PhoneNumber);
-        printf("\nEmail: %s", index->PD.Email);
-        printf("\n\nContract: %s", contractTypeToString(index->EC.Type));
-        printf("\nLabor Date: %s", index->EC.LaborDate);
-        printf("\nPosition: %s", index->EC.Pos);
-        printf("\nDepartment: %s", index->EC.Dept);
-        printf("\nDealt Salary: %d", index->EC.DealtSalary);
-        printf("\n\nSocial Insurance:");
-        printf("\nCode: %s", index->I.BHXH.Code);
-        printf("\nPayment Ratio: %.2f", index->I.BHXH.PayLevel);
-        printf("\nDate: %s", index->I.BHXH.InsuranceDate);
-        printf("\n\nHealth Insurance:");
-        printf("\nCode: %s", index->I.BHYT.Code);
-        printf("\nPayment Ratio: %.2f", index->I.BHYT.PayLevel);
-        printf("\nDate: %s", index->I.BHYT.InsuranceDate);
-        printf("\n\nUnemployment Insurance:");
-        printf("\nCode: %s", index->I.BHTN.Code);
-        printf("\nPayment Ratio: %.2f", index->I.BHTN.PayLevel);
-        printf("\nDate: %s\n", index->I.BHTN.InsuranceDate);
-        printf("Salary: %lld\n", index->SM.FinalSalary);
-        printf("Payment Method: %s\n", paymentToString(index->SM.Method));
-        printf("\n");
+    int found = 0;
+    while (index != NULL) {
+        if (employeeID == NULL || strcmp(index->PD.EmployeeID, employeeID) == 0) {
+            found = 1;
+            printf("\nEMPLOYEE:\n");
+            printf("Name: %s\n", index->PD.Name);
+            printf("Employee ID: %s\n", index->PD.EmployeeID);
+            printf("Birth: %s\n", index->PD.Birth);
+            printf("Gender: %s\n", sexToString(index->PD.Gender));
+            printf("National ID: %s\n", index->PD.NationalID);
+            printf("Tax Number: %s\n", index->PD.TaxNumber);
+            printf("Phone: %s\n", index->PD.PhoneNumber);
+            printf("Email: %s\n", index->PD.Email);
+            printf("Contract: %s\n", contractTypeToString(index->EC.Type));
+            printf("Labor Date: %s\n", index->EC.LaborDate);
+            printf("Position: %s\n", index->EC.Pos);
+            printf("Department: %s\n", index->EC.Dept);
+            printf("Dealt Salary: %llu\n", index->EC.DealtSalary);
+            printf("Social Insurance: Code: %s, Ratio: %.2f%%, Date: %s\n",
+                index->I.BHXH.Code, index->I.BHXH.PayLevel * 100, index->I.BHXH.InsuranceDate);
+            printf("Health Insurance: Code: %s, Ratio: %.2f%%, Date: %s\n",
+                index->I.BHYT.Code, index->I.BHYT.PayLevel * 100, index->I.BHYT.InsuranceDate);
+            printf("Unemployment Insurance: Code: %s, Ratio: %.2f%%, Date: %s\n",
+                index->I.BHTN.Code, index->I.BHTN.PayLevel * 100, index->I.BHTN.InsuranceDate);
+            printf("Salary: %lld\n", index->SM.FinalSalary);
+            printf("Payment Method: %s\n", paymentToString(index->SM.Method));
+        }
         index = index->next;
-        cnt++;
     }
+    if (!found && employeeID != NULL) printf("No employee found with ID: %s\n", employeeID);
 }
 
-void WorkTimeTraverse(){
+void WorkTimeTraverse(const char* employeeID){
     printf("\nDISPLAYING TRACKING DATA\n");
     struct WorkTimeNode* index = WTNode;
-    int cnt = 1;
-    while(index != NULL){
-        printf("\nWORK TIME RECORD %03d:\n", cnt);
-        printf("Employee ID: %s\n", index->WT.EmployeeID);
-        printf("\nCheckin: %s", index->WT.CheckIn);
-        printf("\nCheckout: %s", index->WT.CheckOut);
-        printf("\nOvertime: %d", index->WT.Overtime);
-        printf("\n");
+    int found = 0, cnt = 1;
+    while (index != NULL) {
+    if (employeeID == NULL || strcmp(index->WT.EmployeeID, employeeID) == 0) {
+            found = 1;
+            printf("\nWORK TIME RECORD %03d:\n", cnt++);
+            printf("Employee ID: %s\n", index->WT.EmployeeID);
+            printf("Check-in: %s\n", index->WT.CheckIn);
+            printf("Check-out: %s\n", index->WT.CheckOut);
+            printf("Overtime: %d hours\n", index->WT.Overtime);
+        }
         index = index->next;
-        cnt++;
     }
+    if (!found && employeeID != NULL) printf("No tracking data found for ID: %s\n", employeeID);
 }
 
-void DayOffTraverse(){
+void DayOffTraverse(const char* employeeID){
     printf("\nDISPLAYING DAY OFF DATA\n");
     struct DayOffNode* index = DONode;
-    int cnt = 1;
-    while(index != NULL){
-        printf("\nName: %s", index->DOff.EmployeeID);
-        printf("\nLetter: %s", letterToString(index->DOff.AbsenceLetter));
-        printf("\nDate: %s", index->DOff.AbsenceDate);
-        printf("\nLetter Status: %s", astatusToString(index->DOff.letterstatus));
-        printf("\n");
+    int found = 0, cnt = 1;
+    while (index != NULL) {
+        if (employeeID == NULL || strcmp(index->DOff.EmployeeID, employeeID) == 0) {
+            found = 1;
+            printf("\nDAY OFF RECORD %03d:\n", cnt++);
+            printf("Employee ID: %s\n", index->DOff.EmployeeID);
+            printf("Absence Letter: %s\n", letterToString(index->DOff.AbsenceLetter));
+            printf("Absence Date: %s\n", index->DOff.AbsenceDate);
+            printf("Letter Status: %s\n", astatusToString(index->DOff.letterstatus));
+        }
         index = index->next;
-        cnt++;
     }
+    if (!found && employeeID != NULL) printf("No day off data found for ID: %s\n", employeeID);
 }
 
-void EducationTraverse(){
+void EducationTraverse(const char* employeeID){
     printf("\nDISPLAYING EDUCATION DATA\n");
     struct EducationNode* index = ENode;
-    int cnt = 1;
-    while(index != NULL){
-        printf("\nEDUCATION RECORD %03d:\n", cnt);
-        printf("Employee ID: %s\n", index->E.EmployeeID);
-        printf("Course Name: %s\n", index->E.CourseName);
-        printf("Course Time: %d hours\n", index->E.CourseTime);
-        printf("Course Fee: %lld\n", index->E.CourseFee);
-        printf("Course Status: %s\n", cstatusToString(index->E.coursestatus));
-        printf("\n");
+    int found = 0, cnt = 1;
+    while (index != NULL) {
+        if (employeeID == NULL || strcmp(index->E.EmployeeID, employeeID) == 0) {
+            found = 1;
+            printf("\nEDUCATION RECORD %03d:\n", cnt++);
+            printf("Employee ID: %s\n", index->E.EmployeeID);
+            printf("Course Name: %s\n", index->E.CourseName);
+            printf("Course Time: %d hours\n", index->E.CourseTime);
+            printf("Course Fee: %lld\n", index->E.CourseFee);
+            printf("Course Status: %s\n", cstatusToString(index->E.coursestatus));
+        }
         index = index->next;
-        cnt++;
     }
+    if (!found && employeeID != NULL) printf("No education data found for ID: %s\n", employeeID);
 }
 
-void LayOffTraverse(){
+void LayOffTraverse(const char* employeeID){
     printf("\nDISPLAYING LAYOFF DATA\n");
     struct LayOffNode* index = LONode;
-    int cnt = 1;
-    while(index != NULL){
-        printf("\nLAYOFF RECORD %03d:\n", cnt);
-        printf("Employee ID: %s\n", index->LO.EmployeeID);
-        printf("Date: %s\n", index->LO.Date);
-        printf("Reason: %s\n", layoffreasonToString(index->LO.Reason));
-        printf("\n");
+    int found = 0, cnt = 1;
+    while (index != NULL) {
+        if (employeeID == NULL || strcmp(index->LO.EmployeeID, employeeID) == 0) {
+            found = 1;
+            printf("\nLAYOFF RECORD %03d:\n", cnt++);
+            printf("Employee ID: %s\n", index->LO.EmployeeID);
+            printf("Date: %s\n", index->LO.Date);
+            printf("Reason: %s\n", layoffreasonToString(index->LO.Reason));
+        }
         index = index->next;
-        cnt++;
+    }
+    if (!found && employeeID != NULL) printf("No layoff data found for ID: %s\n", employeeID);
+}
+
+//Update functions
+void updatePersonalData() {
+    char employeeID[100];
+    printf("\n--- UPDATE PERSONAL DATA ---\n");
+    getStringInput(employeeID, sizeof(employeeID), "Enter Employee ID to update: ");
+    
+    struct EmployeeDataNode* current = EDNode;
+    while (current != NULL && strcmp(current->PD.EmployeeID, employeeID) != 0) {
+        current = current->next;
     }
 
+    if (current == NULL) {
+        printf("No employee record found for Employee ID: %s\n", employeeID);
+        return;
+    }
+
+    printf("\nFound Employee Record:\n");
+    printf("Employee ID: %s\n", current->PD.EmployeeID);
+    printf("Current Name: %s\n", current->PD.Name);
+    printf("Current Birth Date: %s\n", current->PD.Birth);
+    printf("Current Gender: %s\n", sexToString(current->PD.Gender));
+    printf("Current National ID: %s\n", current->PD.NationalID);
+    printf("Current Tax Number: %s\n", current->PD.TaxNumber);
+    printf("Current Phone Number: %s\n", current->PD.PhoneNumber);
+    printf("Current Email: %s\n", current->PD.Email);
+
+    int choice;
+    do {
+        printf("\nSelect field to update:\n");
+        printf("1. Name\n");
+        printf("2. Birth Date\n");
+        printf("3. Gender\n");
+        printf("4. National ID\n");
+        printf("5. Tax Number\n");
+        printf("6. Phone Number\n");
+        printf("7. Email\n");
+        printf("8. Finish updating\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        clear_input_buffer();
+
+        switch (choice) {
+            case 1:
+                getStringInput(current->PD.Name, sizeof(current->PD.Name), "Enter new Name: ");
+                printf("Name updated successfully.\n");
+                break;
+            case 2:
+                getStringInput(current->PD.Birth, sizeof(current->PD.Birth), "Enter new Birth Date (dd/mm/yy): ");
+                printf("Birth Date updated successfully.\n");
+                break;
+            case 3:
+                printf("Enter new Gender (0: Male, 1: Female): ");
+                scanf("%d", &choice);
+                clear_input_buffer();
+                current->PD.Gender = (choice == 0) ? Male : Female;
+                printf("Gender updated successfully.\n");
+                break;
+            case 4:
+                getStringInput(current->PD.NationalID, sizeof(current->PD.NationalID), "Enter new National ID: ");
+                printf("National ID updated successfully.\n");
+                break;
+            case 5:
+                getStringInput(current->PD.TaxNumber, sizeof(current->PD.TaxNumber), "Enter new Tax Number: ");
+                printf("Tax Number updated successfully.\n");
+                break;
+            case 6:
+                getStringInput(current->PD.PhoneNumber, sizeof(current->PD.PhoneNumber), "Enter new Phone Number: ");
+                printf("Phone Number updated successfully.\n");
+                break;
+            case 7:
+                getStringInput(current->PD.Email, sizeof(current->PD.Email), "Enter new Email: ");
+                printf("Email updated successfully.\n");
+                break;
+            case 8:
+                printf("Finished updating personal data.\n");
+                updateEmployeeFile(&current->PD, "dulieu_nhanvien.txt");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 8);
 }
+
+void updateDayOffData() {
+    char id[100];
+    printf("\n--- UPDATE DAY OFF DATA ---\n");
+    getStringInput(id, sizeof(id), "Enter Employee ID to update: ");
+    
+    struct DayOffNode* current = DONode;
+    while (current != NULL && strcmp(current->DOff.EmployeeID, id) != 0) {
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        printf("No day off record found for Employee ID: %s\n", id);
+        return;
+    }
+
+    printf("\nFound Day Off Record:\n");
+    printf("Employee ID: %s\n", current->DOff.EmployeeID);
+    printf("Current Absence Letter: %s\n", letterToString(current->DOff.AbsenceLetter));
+    printf("Current Absence Date: %s\n", current->DOff.AbsenceDate);
+    printf("Current Letter Status: %s\n", astatusToString(current->DOff.letterstatus));
+
+    int choice;
+    do {
+        printf("\nSelect field to update:\n");
+        printf("1. Absence Letter\n");
+        printf("2. Absence Date\n");
+        printf("3. Letter Status\n");
+        printf("4. Finish updating\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        clear_input_buffer();
+
+        switch (choice) {
+            case 1:
+                printf("Yes/No Absence Letter (0: No, 1: Yes): ");
+                scanf("%d", &choice);
+                clear_input_buffer();
+                current->DOff.AbsenceLetter = (Letter)choice;
+                printf("Absence Letter updated successfully.\n");
+                break;
+            case 2:
+                getStringInput(current->DOff.AbsenceDate, sizeof(current->DOff.AbsenceDate), "Enter new Absence Date (dd/mm/yy - dd/mm/yy): ");
+                printf("Absence Date updated successfully.\n");
+                break;
+            case 3:
+                printf("Enter Letter Status (0: Pending, 1: Approved, 2: Rejected): ");
+                scanf("%d", &choice);
+                clear_input_buffer();
+                current->DOff.letterstatus = (LetterStatus)choice;
+                printf("Letter Status updated successfully.\n");
+                break;
+            case 4:
+                printf("Finished updating day off data.\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 4);
+}
+
+void updateCourseData() {
+    char id[100];
+    printf("\n--- UPDATE EDUCATION DATA ---\n");
+    getStringInput(id, sizeof(id), "Enter Employee ID to update: ");
+    
+    struct EducationNode* current = ENode;
+    while (current != NULL && strcmp(current->E.EmployeeID, id) != 0) {
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        printf("No education record found for Employee ID: %s\n", id);
+        return;
+    }
+
+    printf("\nFound Education Record:\n");
+    printf("Employee ID: %s\n", current->E.EmployeeID);
+    printf("Current Course Name: %s\n", current->E.CourseName);
+    printf("Current Course Time: %d hours\n", current->E.CourseTime);
+    printf("Current Course Fee: %lld\n", current->E.CourseFee);
+    printf("Current Course Status: %s\n", cstatusToString(current->E.coursestatus));
+
+    int choice;
+    do {
+        printf("\nSelect field to update:\n");
+        printf("1. Course Name\n");
+        printf("2. Course Time\n");
+        printf("3. Course Fee\n");
+        printf("4. Course Status\n");
+        printf("5. Finish updating\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        clear_input_buffer();
+
+        switch (choice) {
+            case 1:
+                getStringInput(current->E.CourseName, sizeof(current->E.CourseName), "Enter new Course Name: ");
+                printf("Course Name updated successfully.\n");
+                break;
+            case 2:
+                printf("Enter new Course Time (hrs): ");
+                scanf("%d", &current->E.CourseTime);
+                clear_input_buffer();
+                printf("Course Time updated successfully.\n");
+                break;
+            case 3:
+                printf("Enter new Course Fee: ");
+                scanf("%lld", &current->E.CourseFee);
+                clear_input_buffer();
+                printf("Course Fee updated successfully.\n");
+                break;
+            case 4:
+                printf("Enter Course Status (0: Failed, 1: Ongoing, 2: Passed): ");
+                scanf("%d", &choice);
+                clear_input_buffer();
+                current->E.coursestatus = (CourseStatus)choice;
+                printf("Course Status updated successfully.\n");
+                break;
+            case 5:
+                printf("Finished updating education data.\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 5);
+}
+
+void updateTrackingData() {
+    char id[100];
+    printf("\n--- UPDATE TRACKING DATA ---\n");
+    getStringInput(id, sizeof(id), "Enter Employee ID to update: ");
+    
+    struct WorkTimeNode* current = WTNode;
+    while (current != NULL && strcmp(current->WT.EmployeeID, id) != 0) {
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        printf("No tracking record found for Employee ID: %s\n", id);
+        return;
+    }
+
+    printf("\nFound Tracking Record:\n");
+    printf("Employee ID: %s\n", current->WT.EmployeeID);
+    printf("Current Check-in: %s\n", current->WT.CheckIn);
+    printf("Current Check-out: %s\n", current->WT.CheckOut);
+    printf("Current Overtime: %d hours\n", current->WT.Overtime);
+
+    int choice;
+    do {
+        printf("\nSelect field to update:\n");
+        printf("1. Check-in Time\n");
+        printf("2. Check-out Time\n");
+        printf("3. Overtime Hours\n");
+        printf("4. Finish updating\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        clear_input_buffer();
+
+        switch (choice) {
+            case 1:
+                getStringInput(current->WT.CheckIn, sizeof(current->WT.CheckIn), "Enter new Check-in Time (xx:yy): ");
+                printf("Check-in Time updated successfully.\n");
+                break;
+            case 2:
+                getStringInput(current->WT.CheckOut, sizeof(current->WT.CheckOut), "Enter new Check-out Time (xx:yy): ");
+                printf("Check-out Time updated successfully.\n");
+                break;
+            case 3:
+                printf("Enter new Overtime Hours: ");
+                scanf("%d", &current->WT.Overtime);
+                clear_input_buffer();
+                printf("Overtime Hours updated successfully.\n");
+                break;
+            case 4:
+                printf("Finished updating tracking data.\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 4);
+}
+
 
 void ReportPrint(){
     printf("\nGENERATING HR REPORT\n");
@@ -687,7 +1008,7 @@ void freeAllLists() {
     LONode = NULL;
 }
 
-struct EmployeeDataNode* FindData(const char* employeeID) {
+struct EmployeeDataNode* findEmployeeData(const char* employeeID) {
     printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
     
     struct EmployeeDataNode* currentED = EDNode;
@@ -703,7 +1024,7 @@ struct EmployeeDataNode* FindData(const char* employeeID) {
     return NULL; // Return NULL if no data is found
 }
 
-struct WorkTimeNode* FindData(const char* employeeID) {
+struct WorkTimeNode* findWorkTimeData(const char* employeeID) {
     printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
     
     struct WorkTimeNode* currentWT = WTNode;
@@ -719,7 +1040,7 @@ struct WorkTimeNode* FindData(const char* employeeID) {
     return NULL; // Return NULL if no data is found
 }
 
-struct DayOffNode* FindData(const char* employeeID) {
+struct DayOffNode* findDayOffData(const char* employeeID) {
     printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
     
     struct DayOffNode* currentDOff = DONode;
@@ -735,7 +1056,7 @@ struct DayOffNode* FindData(const char* employeeID) {
     return NULL; // Return NULL if no data is found
 }
 
-struct EducationNode* FindData(const char* employeeID) {
+struct EducationNode* findEducationData(const char* employeeID) {
     printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
     
     struct EducationNode* currentE = ENode;
@@ -751,7 +1072,7 @@ struct EducationNode* FindData(const char* employeeID) {
     return NULL; // Return NULL if no data is found
 }
 
-struct LayOffNode* FindData(const char* employeeID) {
+struct LayOffNode* findLayOffData(const char* employeeID) {
     printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
     
     struct LayOffNode* currentLO = LONode;
@@ -767,9 +1088,103 @@ struct LayOffNode* FindData(const char* employeeID) {
     return NULL; // Return NULL if no data is found
 }
 
+void deleteEmployee(const char* employeeID) {
+    struct EmployeeDataNode *current = EDNode, *prev = NULL;
+    while (current != NULL && strcmp(current->PD.EmployeeID, employeeID) != 0) {
+        prev = current;
+        current = current->next;
+    }
+    if (current == NULL) {
+        printf("No employee found with ID: %s\n", employeeID);
+        return;
+    }
+    if (prev == NULL) EDNode = current->next;
+    else prev->next = current->next;
+    free(current);
+    printf("Employee %s deleted from memory.\n", employeeID);
+    FILE* file = fopen("dulieu_nhanvien.txt", "r");
+    if (!file) {
+        printf("Cannot open file to read!\n");
+        return;
+    }
+    FILE* tempFile = fopen("temp_nhanvien.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+    char line[512], fileID[100];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", fileID);
+        if (strcmp(fileID, employeeID) != 0) fprintf(tempFile, "%s", line);
+        else found = 1;
+    }
+    fclose(file);
+    fclose(tempFile);
+    if (found) {
+        remove("dulieu_nhanvien.txt");
+        rename("temp_nhanvien.txt", "dulieu_nhanvien.txt");
+        printf("Employee %s removed from file.\n", employeeID);
+    } else {
+        remove("temp_nhanvien.txt");
+        printf("Employee %s not found in file.\n", employeeID);
+    }
+}
+
+// Read data from file
+void loadEmployeesFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing employee file found. Starting fresh.\n");
+        return;
+    }
+    char line[512];
+    while (fgets(line, sizeof(line), file)) {
+        struct EmployeeDataNode* newNode = (struct EmployeeDataNode*)malloc(sizeof(struct EmployeeDataNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        char genderStr[10];
+        sscanf(line, "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]",
+               newNode->PD.EmployeeID, newNode->PD.Name, newNode->PD.Birth, genderStr,
+               newNode->PD.NationalID, newNode->PD.TaxNumber, newNode->PD.PhoneNumber, newNode->PD.Email);
+        newNode->PD.Gender = strcmp(genderStr, "Male") == 0 ? Male : Female;
+        // Initialize default values for EmploymentContract
+        newNode->EC.Type = Probation;
+        strcpy(newNode->EC.LaborDate, "01/01/00 - 01/01/00");
+        strcpy(newNode->EC.Pos, "Unknown");
+        strcpy(newNode->EC.Dept, "Unknown");
+        newNode->EC.DealtSalary = 0;
+        // Initialize default values for Insurance
+        strcpy(newNode->I.BHXH.Code, "N/A");
+        newNode->I.BHXH.PayLevel = 0.0;
+        strcpy(newNode->I.BHXH.InsuranceDate, "N/A");
+        strcpy(newNode->I.BHYT.Code, "N/A");
+        newNode->I.BHYT.PayLevel = 0.0;
+        strcpy(newNode->I.BHYT.InsuranceDate, "N/A");
+        strcpy(newNode->I.BHTN.Code, "N/A");
+        newNode->I.BHTN.PayLevel = 0.0;
+        strcpy(newNode->I.BHTN.InsuranceDate, "N/A");
+        // Initialize default values for SalaryManaging
+        newNode->SM.BaseSalary = 0;
+        newNode->SM.WorkTimeThisMonth = 0;
+        newNode->SM.Allowance[0] = newNode->SM.Allowance[1] = newNode->SM.Allowance[2] = 0;
+        newNode->SM.Bonus[0] = newNode->SM.Bonus[1] = newNode->SM.Bonus[2] = 0;
+        newNode->SM.Tax = 0.0;
+        newNode->SM.FinalSalary = 0;
+        newNode->SM.Method = Cash;
+        newNode->next = EDNode;
+        EDNode = newNode;
+    }
+    fclose(file);
+    printf("Employee data loaded successfully from %s\n", filename);
+}
+
 int main(){
     int choice1, choice2, choice3;
-    char EmployeeID_tmp[100];
+    char employeeID_tmp[100];
     PersonalData newPD;
     EmploymentContract newEC;
     Insurance newI;
@@ -778,15 +1193,21 @@ int main(){
     DayOff newDO;
     Education newE;
     LayOff newLO;
+    
+    loadEmployeesFromFile("dulieu_nhanvien.txt");
+    printf("Welcome to the Human Resource Managing System!\n");
+
+
 
     do {
         printf("\n--- HUMAN RESOURCE MANAGING SYSTEM MENU ---\n");
         printf("1. Add New Data\n");
         printf("2. Display Data\n");
-        printf("3. Find and Update/Change Data\n");
-        printf("4. Delete an Employee\n");
-        printf("5. Generate Report\n");
-        printf("6. Exit\n");
+        printf("3. Find and Display Data\n");
+        printf("4. Update Data\n");
+        printf("5. Delete an Employee\n");
+        printf("6. Generate Report\n");
+        printf("7. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice1);
         clear_input_buffer();
@@ -830,6 +1251,7 @@ int main(){
                     default:
                         printf("Invalid choice. Please try again.\n");
                 }
+                break;
             case 2:
                 printf("\n--- HUMAN RESOURCE MANAGING SYSTEM MENU ---\n");
                 printf("\n--- DISPLAY DATA ---\n");
@@ -844,28 +1266,29 @@ int main(){
                 clear_input_buffer();
                 switch (choice2) {
                     case 1:
-                        EmployeeDataTraverse();
+                        EmployeeDataTraverse(NULL);
                         break;
                     case 2:
-                        WorkTimeTraverse();
+                        WorkTimeTraverse(NULL);
                         break;
                     case 3:
-                        DayOffTraverse();
+                        DayOffTraverse(NULL);
                         break;
                     case 4:
-                        EducationTraverse();
+                        EducationTraverse(NULL);
                         break;
                     case 5:
-                        LayOffTraverse();
+                        LayOffTraverse(NULL);
                         break;
                     case 6:
                         break;
                     default:
                         printf("Invalid choice. Please try again.\n");
                 }
+                break;
             case 3:
                 printf("\n--- HUMAN RESOURCE MANAGING SYSTEM MENU ---\n");
-                printf("\n--- FIND AND UPDATE/CHANGE DATA ---\n");
+                printf("\n--- FIND AND DISPlAY DATA ---\n");
                 printf("1. Employee Data\n");
                 printf("2. Work Time Tracking Data\n");
                 printf("3. Dayoff Data\n");
@@ -875,40 +1298,76 @@ int main(){
                 printf("Enter What You Want To Find: \n");
                 scanf("%d", &choice3);
                 clear_input_buffer();
-                getStringInput(EmployeeID_tmp, sizeof(EmployeeID_tmp), "Enter Employee ID: ");
-                switch (choice3) {
-                    case 1:
-                        struct EmployeeDataNode* foundEmployee = FindData(EmployeeID_tmp);
-                        // Change
-                    case 2: 
-                        struct WorkTimeNode* foundWorkTime = FindData(EmployeeID_tmp);
-                        // Change
-                    case 3:
-                        struct DayOffNode* foundDayOff = FindData(EmployeeID_tmp);
-                        // Change
-                    case 4:
-                        struct EducationNode* foundEducation = FindData(EmployeeID_tmp);
-                        // Change
-                    case 5:
-                        struct LayOffNode* foundLO = FindData(EmployeeID_tmp);
-                        // Change
-                    case 6: 
-                        break;
-                    default:
-                        printf("Invalid choice. Please try again.\n");
+                if (choice3 >= 1 && choice3 <= 5) {
+                    getStringInput(employeeID_tmp, sizeof(employeeID_tmp), "Enter Employee ID: ");
+                    switch (choice3) {
+                        case 1:
+                            if (findEmployeeData(employeeID_tmp)) EmployeeDataTraverse(employeeID_tmp);
+                            break;
+                        case 2:
+                            if (findWorkTimeData(employeeID_tmp)) WorkTimeTraverse(employeeID_tmp);
+                            break;
+                        case 3:
+                            if (findDayOffData(employeeID_tmp)) DayOffTraverse(employeeID_tmp);
+                            break;
+                        case 4:
+                            if (findEducationData(employeeID_tmp)) EducationTraverse(employeeID_tmp);
+                            break;
+                        case 5:
+                            if (findLayOffData(employeeID_tmp)) LayOffTraverse(employeeID_tmp);
+                            break;
+                    }
+                } else if (choice3 != 6) {
+                    printf("Invalid choice.\n");
                 }
+                break;
                 
+            case 4:
+                printf("\n--- UPDATE DATA ---\n");
+                printf("1. Update Personal Data\n2. Update Tracking Time\n3. Update Day Off Data\n");
+                printf("4. Update Education Data\n5. Return\n");
+                printf("Enter your choice: ");
+                scanf("%d", &choice2);
+                clear_input_buffer();
+                switch (choice2) {
+                    case 1: updatePersonalData(); 
+                        break;
+                    case 2: updateTrackingData(); 
+                        break;
+                    case 3: updateDayOffData(); 
+                        break;
+                    case 4: updateCourseData(); 
+                        break;
+                    case 5: 
+                        break;
+                    default: 
+                        printf("Invalid choice.\n");
+                }
+                break;
             case 5:
+                printf("\n--- DELETE AN EMPLOYEE ---\n");
+                getStringInput(employeeID_tmp, sizeof(employeeID_tmp), "Enter Employee ID to delete: ");
+                deleteEmployee(employeeID_tmp);
+                break;
+            case 6:
                 ReportPrint();
                 break;
-            case 6: 
+            case 7:
                 printf("Exiting program. Goodbye!\n");
                 freeAllLists();
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-    } while (choice1 != 4);
+        
+        clear_input_buffer();
+        printf("\nPress Enter to continue...\n");
+        getchar(); // Wait for user to press Enter
+        freeAllLists(); // Free all lists before next iteration
+        printf("\nReturning to main menu...\n");
+        clear_input_buffer();
+     
+    } while (choice1 != 7);
 
     return 0;
 }
