@@ -1,0 +1,5 @@
+NV0001|Programming|40|1000000|Ongoing
+NV0002|Accounting|30|800000|Passed
+NV0003|Management|50|1500000|Passed
+NV0004|Design|20|500000|Ongoing
+NV0005|Engineering|60|1200000|Failed

@@ -79,7 +79,7 @@ typedef enum {
 const char* paymentToString(Payment method){
     switch (method) {
         case Cash: return "Cash";
-        case BankTransfer: return "Bank Transfers";
+        case BankTransfer: return "Bank Transfer";
         default: return "Unknown";
     }
 }
@@ -228,20 +228,6 @@ struct DayOffNode* DONode = NULL;
 struct EducationNode* ENode = NULL;
 struct LayOffNode* LONode = NULL;
 
-void EmployeeDataInsert(PersonalData pd, EmploymentContract ec, Insurance in, SalaryManaging sm){
-    struct EmployeeDataNode* newNode = (struct EmployeeDataNode*)malloc(sizeof(struct EmployeeDataNode));
-    if (newNode == NULL) printf("DATA INSERTED UNSUCCESSFULLY!\n");
-    else{
-        newNode->PD = pd;
-        newNode->EC = ec;
-        newNode->I = in;
-        newNode->SM = sm;
-        newNode->SM.FinalSalary = FinalSalaryCalculation(sm.BaseSalary, sm.WorkTimeThisMonth, sm.Allowance, sm.Bonus, sm.Tax);
-        newNode->next = EDNode;
-        EDNode = newNode;
-        printf("DATA INSERTED SUCCESSFULLY!\n");
-    }
-}
 
 int getLastEmployeeID_FromFile(const char* filename) {
     FILE* file = fopen(filename, "r");
@@ -262,67 +248,61 @@ int getLastEmployeeID_FromFile(const char* filename) {
     return numericID;
 }
 
-void saveEmployeeToFile(const PersonalData* pd, const char* filename) {
+void saveEmployeeToFile(const struct EmployeeDataNode* node, const char* filename) {
     FILE* file = fopen(filename, "a");
     if (!file) {
-        printf("Cannot open file to write!\n");
+        printf("Cannot open file %s to write!\n", filename);
         return;
     }
-
-    fprintf(file, "%s|%s|%s|%s|%s|%s|%s|%s\n",
-        pd->EmployeeID,
-        pd->Name,
-        pd->Birth,
-        sexToString(pd->Gender),
-        pd->NationalID,
-        pd->TaxNumber,
-        pd->PhoneNumber,
-        pd->Email
-    );
-
+    fprintf(file, "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%llu|%s|%.2f|%s|%s|%.2f|%s|%s|%.2f|%s|%lld|%d|%lld|%lld|%lld|%lld|%lld|%lld|%.2f|%lld|%s\n",
+        node->PD.EmployeeID, node->PD.Name, node->PD.Birth, sexToString(node->PD.Gender),
+        node->PD.NationalID, node->PD.TaxNumber, node->PD.PhoneNumber, node->PD.Email,
+        contractTypeToString(node->EC.Type), node->EC.LaborDate, node->EC.Pos, node->EC.Dept, node->EC.DealtSalary,
+        node->I.BHXH.Code, node->I.BHXH.PayLevel, node->I.BHXH.InsuranceDate,
+        node->I.BHYT.Code, node->I.BHYT.PayLevel, node->I.BHYT.InsuranceDate,
+        node->I.BHTN.Code, node->I.BHTN.PayLevel, node->I.BHTN.InsuranceDate,
+        node->SM.BaseSalary, node->SM.WorkTimeThisMonth,
+        node->SM.Allowance[0], node->SM.Allowance[1], node->SM.Allowance[2],
+        node->SM.Bonus[0], node->SM.Bonus[1], node->SM.Bonus[2],
+        node->SM.Tax, node->SM.FinalSalary, paymentToString(node->SM.Method));
     fclose(file);
 }
 
-void updateEmployeeFile(const PersonalData* pd, const char* filename) {
+void updateEmployeeFile(const struct EmployeeDataNode* node, const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
-        printf("Cannot open file to read!\n");
+        printf("Cannot open file %s to read!\n", filename);
         return;
     }
-
     FILE* tempFile = fopen("temp_nhanvien.txt", "w");
     if (!tempFile) {
         printf("Cannot open temp file to write!\n");
         fclose(file);
         return;
     }
-
-    char line[512];
-    char employeeID[100];
+    char line[1024], employeeID[100];
     int found = 0;
-
     while (fgets(line, sizeof(line), file)) {
         sscanf(line, "%[^|]", employeeID);
-        if (strcmp(employeeID, pd->EmployeeID) == 0) {
-            fprintf(tempFile, "%s|%s|%s|%s|%s|%s|%s|%s\n",
-                pd->EmployeeID,
-                pd->Name,
-                pd->Birth,
-                sexToString(pd->Gender),
-                pd->NationalID,
-                pd->TaxNumber,
-                pd->PhoneNumber,
-                pd->Email
-            );
+        if (strcmp(employeeID, node->PD.EmployeeID) == 0) {
+            fprintf(tempFile, "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%llu|%s|%.2f|%s|%s|%.2f|%s|%s|%.2f|%s|%lld|%d|%lld|%lld|%lld|%lld|%lld|%lld|%.2f|%lld|%s\n",
+                node->PD.EmployeeID, node->PD.Name, node->PD.Birth, sexToString(node->PD.Gender),
+                node->PD.NationalID, node->PD.TaxNumber, node->PD.PhoneNumber, node->PD.Email,
+                contractTypeToString(node->EC.Type), node->EC.LaborDate, node->EC.Pos, node->EC.Dept, node->EC.DealtSalary,
+                node->I.BHXH.Code, node->I.BHXH.PayLevel, node->I.BHXH.InsuranceDate,
+                node->I.BHYT.Code, node->I.BHYT.PayLevel, node->I.BHYT.InsuranceDate,
+                node->I.BHTN.Code, node->I.BHTN.PayLevel, node->I.BHTN.InsuranceDate,
+                node->SM.BaseSalary, node->SM.WorkTimeThisMonth,
+                node->SM.Allowance[0], node->SM.Allowance[1], node->SM.Allowance[2],
+                node->SM.Bonus[0], node->SM.Bonus[1], node->SM.Bonus[2],
+                node->SM.Tax, node->SM.FinalSalary, paymentToString(node->SM.Method));
             found = 1;
         } else {
             fprintf(tempFile, "%s", line);
         }
     }
-
     fclose(file);
     fclose(tempFile);
-
     if (found) {
         remove(filename);
         rename("temp_nhanvien.txt", filename);
@@ -333,9 +313,364 @@ void updateEmployeeFile(const PersonalData* pd, const char* filename) {
     }
 }
 
+// Read data from file
+void loadEmployeesFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing employee file found. Starting fresh.\n");
+        return;
+    }
+    char line[1024];
+    while (fgets(line, sizeof(line), file)) {
+        struct EmployeeDataNode* newNode = (struct EmployeeDataNode*)malloc(sizeof(struct EmployeeDataNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        char genderStr[10], contractStr[20], bhxhCode[20], bhytCode[20], bhtnCode[20], paymentStr[20];
+        sscanf(line, "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%llu|%[^|]|%lf|%[^|]|%[^|]|%lf|%[^|]|%[^|]|%lf|%[^|]|%lld|%d|%lld|%lld|%lld|%lld|%lld|%lld|%lf|%lld|%[^|\n]",
+               newNode->PD.EmployeeID, newNode->PD.Name, newNode->PD.Birth, genderStr,
+               newNode->PD.NationalID, newNode->PD.TaxNumber, newNode->PD.PhoneNumber, newNode->PD.Email,
+               contractStr, newNode->EC.LaborDate, newNode->EC.Pos, newNode->EC.Dept, &newNode->EC.DealtSalary,
+               bhxhCode, &newNode->I.BHXH.PayLevel, newNode->I.BHXH.InsuranceDate,
+               bhytCode, &newNode->I.BHYT.PayLevel, newNode->I.BHYT.InsuranceDate,
+               bhtnCode, &newNode->I.BHTN.PayLevel, newNode->I.BHTN.InsuranceDate,
+               &newNode->SM.BaseSalary, &newNode->SM.WorkTimeThisMonth,
+               &newNode->SM.Allowance[0], &newNode->SM.Allowance[1], &newNode->SM.Allowance[2],
+               &newNode->SM.Bonus[0], &newNode->SM.Bonus[1], &newNode->SM.Bonus[2],
+               &newNode->SM.Tax, &newNode->SM.FinalSalary, paymentStr);
+        newNode->PD.Gender = strcmp(genderStr, "Male") == 0 ? Male : Female;
+        newNode->EC.Type = strcmp(contractStr, "Probation") == 0 ? Probation :
+                           strcmp(contractStr, "Definite Term") == 0 ? DefiniteTerm : IndefiniteTerm;
+        strcpy(newNode->I.BHXH.Code, bhxhCode);
+        strcpy(newNode->I.BHYT.Code, bhytCode);
+        strcpy(newNode->I.BHTN.Code, bhtnCode);
+        newNode->SM.Method = strcmp(paymentStr, "Cash") == 0 ? Cash : BankTransfer;
+        newNode->next = EDNode;
+        EDNode = newNode;
+    }
+    fclose(file);
+    printf("Employee data loaded successfully from %s\n", filename);
+}
+
+// WorkTime
+void saveWorkTimeToFile(const WorkTime* wt, const char* filename) {
+    FILE* file = fopen(filename, "a");
+    if (!file) {
+        printf("Cannot open file to write!\n");
+        return;
+    }
+    fprintf(file, "%s|%s|%s|%d\n",
+        wt->EmployeeID, wt->CheckIn, wt->CheckOut, wt->Overtime);
+    fclose(file);
+}
+
+void loadWorkTimeFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing work time file found. Starting fresh.\n");
+        return;
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        struct WorkTimeNode* newNode = (struct WorkTimeNode*)malloc(sizeof(struct WorkTimeNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        sscanf(line, "%[^|]|%[^|]|%[^|]|%d",
+            newNode->WT.EmployeeID, newNode->WT.CheckIn, newNode->WT.CheckOut, &newNode->WT.Overtime);
+        newNode->next = WTNode;
+        WTNode = newNode;
+    }
+    fclose(file);
+    printf("Work time data loaded successfully from %s\n", filename);
+}
+
+void updateWorkTimeFile(const WorkTime* wt, const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("Cannot open file to read!\n");
+        return;
+    }
+    FILE* tempFile = fopen("temp_worktime.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+    char line[256], employeeID[100];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", employeeID);
+        if (strcmp(employeeID, wt->EmployeeID) == 0) {
+            fprintf(tempFile, "%s|%s|%s|%d\n",
+                wt->EmployeeID, wt->CheckIn, wt->CheckOut, wt->Overtime);
+            found = 1;
+        } else {
+            fprintf(tempFile, "%s", line);
+        }
+    }
+    fclose(file);
+    fclose(tempFile);
+    if (found) {
+        remove(filename);
+        rename("temp_worktime.txt", filename);
+        printf("Work time file updated successfully.\n");
+    } else {
+        remove("temp_worktime.txt");
+        printf("Employee ID not found in work time file.\n");
+    }
+}
+
+// DayOff
+void saveDayOffToFile(const DayOff* doff, const char* filename) {
+    FILE* file = fopen(filename, "a");
+    if (!file) {
+        printf("Cannot open file to write!\n");
+        return;
+    }
+    fprintf(file, "%s|%s|%s|%s\n",
+        doff->EmployeeID, letterToString(doff->AbsenceLetter),
+        doff->AbsenceDate, astatusToString(doff->letterstatus));
+    fclose(file);
+}
+
+void loadDayOffFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing day off file found. Starting fresh.\n");
+        return;
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        struct DayOffNode* newNode = (struct DayOffNode*)malloc(sizeof(struct DayOffNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        char letterStr[10], statusStr[20];
+        sscanf(line, "%[^|]|%[^|]|%[^|]|%[^|]",
+            newNode->DOff.EmployeeID, letterStr, newNode->DOff.AbsenceDate, statusStr);
+        newNode->DOff.AbsenceLetter = strcmp(letterStr, "Yes") == 0 ? Yes : No;
+        if (strcmp(statusStr, "Pending") == 0) newNode->DOff.letterstatus = Pending;
+        else if (strcmp(statusStr, "Approved") == 0) newNode->DOff.letterstatus = Approved;
+        else newNode->DOff.letterstatus = Rejected;
+        newNode->next = DONode;
+        DONode = newNode;
+    }
+    fclose(file);
+    printf("Day off data loaded successfully from %s\n", filename);
+}
+
+void updateDayOffFile(const DayOff* doff, const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("Cannot open file to read!\n");
+        return;
+    }
+    FILE* tempFile = fopen("temp_dayoff.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+    char line[256], employeeID[100];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", employeeID);
+        if (strcmp(employeeID, doff->EmployeeID) == 0) {
+            fprintf(tempFile, "%s|%s|%s|%s\n",
+                doff->EmployeeID, letterToString(doff->AbsenceLetter),
+                doff->AbsenceDate, astatusToString(doff->letterstatus));
+            found = 1;
+        } else {
+            fprintf(tempFile, "%s", line);
+        }
+    }
+    fclose(file);
+    fclose(tempFile);
+    if (found) {
+        remove(filename);
+        rename("temp_dayoff.txt", filename);
+        printf("Day off file updated successfully.\n");
+    } else {
+        remove("temp_dayoff.txt");
+        printf("Employee ID not found in day off file.\n");
+    }
+}
+
+// Education
+void saveEducationToFile(const Education* e, const char* filename) {
+    FILE* file = fopen(filename, "a");
+    if (!file) {
+        printf("Cannot open file to write!\n");
+        return;
+    }
+    fprintf(file, "%s|%s|%d|%lld|%s\n",
+        e->EmployeeID, e->CourseName, e->CourseTime, e->CourseFee,
+        cstatusToString(e->coursestatus));
+    fclose(file);
+}
+
+void loadEducationFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing education file found. Starting fresh.\n");
+        return;
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        struct EducationNode* newNode = (struct EducationNode*)malloc(sizeof(struct EducationNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        char statusStr[20];
+        sscanf(line, "%[^|]|%[^|]|%d|%lld|%[^|]",
+            newNode->E.EmployeeID, newNode->E.CourseName, &newNode->E.CourseTime,
+            &newNode->E.CourseFee, statusStr);
+        if (strcmp(statusStr, "Failed") == 0) newNode->E.coursestatus = Failed;
+        else if (strcmp(statusStr, "Ongoing") == 0) newNode->E.coursestatus = Ongoing;
+        else newNode->E.coursestatus = Passed;
+        newNode->next = ENode;
+        ENode = newNode;
+    }
+    fclose(file);
+    printf("Education data loaded successfully from %s\n", filename);
+}
+
+void updateEducationFile(const Education* e, const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("Cannot open file to read!\n");
+        return;
+    }
+    FILE* tempFile = fopen("temp_education.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+    char line[256], employeeID[100];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", employeeID);
+        if (strcmp(employeeID, e->EmployeeID) == 0) {
+            fprintf(tempFile, "%s|%s|%d|%lld|%s\n",
+                e->EmployeeID, e->CourseName, e->CourseTime, e->CourseFee,
+                cstatusToString(e->coursestatus));
+            found = 1;
+        } else {
+            fprintf(tempFile, "%s", line);
+        }
+    }
+    fclose(file);
+    fclose(tempFile);
+    if (found) {
+        remove(filename);
+        rename("temp_education.txt", filename);
+        printf("Education file updated successfully.\n");
+    } else {
+        remove("temp_education.txt");
+        printf("Employee ID not found in education file.\n");
+    }
+}
+
+// LayOff
+void saveLayOffToFile(const LayOff* lo, const char* filename) {
+    FILE* file = fopen(filename, "a");
+    if (!file) {
+        printf("Cannot open file to write!\n");
+        return;
+    }
+    fprintf(file, "%s|%s|%s\n",
+        lo->EmployeeID, lo->Date, layoffreasonToString(lo->Reason));
+    fclose(file);
+}
+
+void loadLayOffFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing layoff file found. Starting fresh.\n");
+        return;
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        struct LayOffNode* newNode = (struct LayOffNode*)malloc(sizeof(struct LayOffNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        char reasonStr[20];
+        sscanf(line, "%[^|]|%[^|]|%[^|]",
+            newNode->LO.EmployeeID, newNode->LO.Date, reasonStr);
+        if (strcmp(reasonStr, "Volunteered") == 0) newNode->LO.Reason = Volunteered;
+        else if (strcmp(reasonStr, "Fired") == 0) newNode->LO.Reason = Fired;
+        else newNode->LO.Reason = ContractEnded;
+        newNode->next = LONode;
+        LONode = newNode;
+    }
+    fclose(file);
+    printf("Layoff data loaded successfully from %s\n", filename);
+}
+
+void updateLayOffFile(const LayOff* lo, const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("Cannot open file to read!\n");
+        return;
+    }
+    FILE* tempFile = fopen("temp_layoff.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+    char line[256], employeeID[100];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", employeeID);
+        if (strcmp(employeeID, lo->EmployeeID) == 0) {
+            fprintf(tempFile, "%s|%s|%s\n",
+                lo->EmployeeID, lo->Date, layoffreasonToString(lo->Reason));
+            found = 1;
+        } else {
+            fprintf(tempFile, "%s", line);
+        }
+    }
+    fclose(file);
+    fclose(tempFile);
+    if (found) {
+        remove(filename);
+        rename("temp_layoff.txt", filename);
+        printf("Layoff file updated successfully.\n");
+    } else {
+        remove("temp_layoff.txt");
+        printf("Employee ID not found in layoff file.\n");
+    }
+}
+
 void generateEmployeeID(char* newID, const char* filename) {
     int lastID = getLastEmployeeID_FromFile(filename);
     sprintf(newID, "NV%04d", lastID + 1);
+}
+
+void EmployeeDataInsert(PersonalData pd, EmploymentContract ec, Insurance in, SalaryManaging sm) {
+    struct EmployeeDataNode* newNode = (struct EmployeeDataNode*)malloc(sizeof(struct EmployeeDataNode));
+    if (newNode == NULL) {
+        printf("DATA INSERTED UNSUCCESSFULLY!\n");
+        return;
+    }
+    newNode->PD = pd;
+    newNode->EC = ec;
+    newNode->I = in;
+    newNode->SM = sm;
+    newNode->SM.FinalSalary = FinalSalaryCalculation(sm.BaseSalary, sm.WorkTimeThisMonth, sm.Allowance, sm.Bonus, sm.Tax);
+    newNode->next = EDNode;
+    EDNode = newNode;
+    saveEmployeeToFile(newNode, "dulieu_nhanvien.txt");
+    printf("DATA INSERTED SUCCESSFULLY!\n");
 }
 
 void EmployeeDataInput(PersonalData *pd, EmploymentContract *ec, Insurance *in, SalaryManaging *sm) {
@@ -345,7 +680,6 @@ void EmployeeDataInput(PersonalData *pd, EmploymentContract *ec, Insurance *in, 
     printf("Generated Employee ID: %s\n", pd->EmployeeID);
     getStringInput(pd->Name, sizeof(pd->Name), "Enter Name: ");
     clear_input_buffer(); 
-
     getStringInput(pd->Birth, sizeof(pd->Birth), "Enter Birth Date (dd/mm/yy): ");
 
     int genderChoice;
@@ -358,9 +692,7 @@ void EmployeeDataInput(PersonalData *pd, EmploymentContract *ec, Insurance *in, 
     getStringInput(pd->TaxNumber, sizeof(pd->TaxNumber), "Enter Tax Number: ");
     getStringInput(pd->PhoneNumber, sizeof(pd->PhoneNumber), "Enter Phone Number: ");
     getStringInput(pd->Email, sizeof(pd->Email), "Enter Email: ");
-    saveEmployeeToFile(pd, "dulieu_nhanvien.txt");
     printf("Personal data input complete.\n");
-    
 
     printf("\n--- ENTER EMPLOYMENT CONTRACT DATA ---\n");
     int contractTypeChoice;
@@ -435,17 +767,19 @@ void EmployeeDataInput(PersonalData *pd, EmploymentContract *ec, Insurance *in, 
     clear_input_buffer();
     sm->Method = (Payment)paymentMethodChoice;
 
+    sm->FinalSalary = FinalSalaryCalculation(sm->BaseSalary, sm->WorkTimeThisMonth, sm->Allowance, sm->Bonus, sm->Tax);
     printf("\nEmployee data input complete.\n");
 }
 
 void WorkTimeInsert(WorkTime wt){
     struct WorkTimeNode* newNode = (struct WorkTimeNode*)malloc(sizeof(struct WorkTimeNode));
-    if (newNode == NULL) printf("DATA INSERTED UNSUCESSFULLY!\n");
+    if (newNode == NULL) printf("DATA INSERTED UNSUCCESSFULLY!\n");
     else{
         newNode->WT = wt;
         newNode->next = WTNode;
         WTNode = newNode;
-        printf("DATA INSERTED SUCESSFULLY!\n");
+        saveWorkTimeToFile(&wt, "worktime.txt");
+        printf("DATA INSERTED SUCCESSFULLY!\n");
     }
 }
 
@@ -464,12 +798,13 @@ void WorkTimeInput(WorkTime *wt){
 
 void DayOffInsert(DayOff doff){
     struct DayOffNode* newNode = (struct DayOffNode*)malloc(sizeof(struct DayOffNode));
-    if (newNode == NULL) printf("DATA INSERTED UNSUCESSFULLY!\n");
+    if (newNode == NULL) printf("DATA INSERTED UNSUCCESSFULLY!\n");
     else{
         newNode->DOff = doff;
         newNode->next = DONode;
         DONode = newNode;
-        printf("DATA INSERTED SUCESSFULLY!\n");
+        saveDayOffToFile(&doff, "dayoff.txt");
+        printf("DATA INSERTED SUCCESSFULLY!\n");
     }
 }
 
@@ -495,13 +830,14 @@ void DayOffInput(DayOff *doff){
 void EducationInsert(Education e){
     struct EducationNode* newNode = (struct EducationNode*)malloc(sizeof(struct EducationNode));
     if (newNode == NULL) {
-        printf("DATA INSERTED UNSUCESSFULLY!\n");
+        printf("DATA INSERTED UNSUCCESSFULLY!\n");
         return;
     }
     newNode->E = e;
     newNode->next = ENode;
     ENode = newNode;
-    printf("DATA INSERTED SUCESSFULLY!\n");
+    saveEducationToFile(&e, "education.txt");
+    printf("DATA INSERTED SUCCESSFULLY!\n");
     
 }
 
@@ -527,12 +863,13 @@ void EducationInput(Education *e){
 
 void LayOffInsert(LayOff lo){
     struct LayOffNode* newNode = (struct LayOffNode*)malloc(sizeof(struct LayOffNode));
-    if (newNode == NULL) printf("DATA INSERTED UNSUCESSFULLY!\n");
+    if (newNode == NULL) printf("DATA INSERTED UNSUCCESSFULLY!\n");
     else{
         newNode->LO = lo;
         newNode->next = LONode;
         LONode = newNode;
-        printf("DATA INSERTED SUCESSFULLY!\n");
+        saveLayOffToFile(&lo, "layoff.txt");
+        printf("DATA INSERTED SUCCESSFULLY!\n");
     }
 }
 
@@ -672,14 +1009,7 @@ void updatePersonalData() {
     }
 
     printf("\nFound Employee Record:\n");
-    printf("Employee ID: %s\n", current->PD.EmployeeID);
-    printf("Current Name: %s\n", current->PD.Name);
-    printf("Current Birth Date: %s\n", current->PD.Birth);
-    printf("Current Gender: %s\n", sexToString(current->PD.Gender));
-    printf("Current National ID: %s\n", current->PD.NationalID);
-    printf("Current Tax Number: %s\n", current->PD.TaxNumber);
-    printf("Current Phone Number: %s\n", current->PD.PhoneNumber);
-    printf("Current Email: %s\n", current->PD.Email);
+    EmployeeDataTraverse(employeeID);
 
     int choice;
     do {
@@ -730,7 +1060,7 @@ void updatePersonalData() {
                 break;
             case 8:
                 printf("Finished updating personal data.\n");
-                updateEmployeeFile(&current->PD, "dulieu_nhanvien.txt");
+                updateEmployeeFile(current, "dulieu_nhanvien.txt");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
@@ -754,10 +1084,7 @@ void updateDayOffData() {
     }
 
     printf("\nFound Day Off Record:\n");
-    printf("Employee ID: %s\n", current->DOff.EmployeeID);
-    printf("Current Absence Letter: %s\n", letterToString(current->DOff.AbsenceLetter));
-    printf("Current Absence Date: %s\n", current->DOff.AbsenceDate);
-    printf("Current Letter Status: %s\n", astatusToString(current->DOff.letterstatus));
+    DayOffTraverse(id);
 
     int choice;
     do {
@@ -791,6 +1118,7 @@ void updateDayOffData() {
                 break;
             case 4:
                 printf("Finished updating day off data.\n");
+                updateDayOffFile(&current->DOff, "dayoff.txt");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
@@ -814,11 +1142,7 @@ void updateCourseData() {
     }
 
     printf("\nFound Education Record:\n");
-    printf("Employee ID: %s\n", current->E.EmployeeID);
-    printf("Current Course Name: %s\n", current->E.CourseName);
-    printf("Current Course Time: %d hours\n", current->E.CourseTime);
-    printf("Current Course Fee: %lld\n", current->E.CourseFee);
-    printf("Current Course Status: %s\n", cstatusToString(current->E.coursestatus));
+    EducationTraverse(id);
 
     int choice;
     do {
@@ -858,6 +1182,7 @@ void updateCourseData() {
                 break;
             case 5:
                 printf("Finished updating education data.\n");
+                updateEducationFile(&current->E, "education.txt");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
@@ -881,10 +1206,7 @@ void updateTrackingData() {
     }
 
     printf("\nFound Tracking Record:\n");
-    printf("Employee ID: %s\n", current->WT.EmployeeID);
-    printf("Current Check-in: %s\n", current->WT.CheckIn);
-    printf("Current Check-out: %s\n", current->WT.CheckOut);
-    printf("Current Overtime: %d hours\n", current->WT.Overtime);
+    WorkTimeTraverse(id);
 
     int choice;
     do {
@@ -914,11 +1236,258 @@ void updateTrackingData() {
                 break;
             case 4:
                 printf("Finished updating tracking data.\n");
+                updateWorkTimeFile(&current->WT, "worktime.txt");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
     } while (choice != 4);
+}
+
+
+struct EmployeeDataNode* findEmployeeData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct EmployeeDataNode* currentED = EDNode;
+    while (currentED != NULL) {
+        if (strcmp(currentED->PD.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentED; 
+        }
+        currentED = currentED->next;
+    }
+    
+    printf("No data found in Employee Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct WorkTimeNode* findWorkTimeData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct WorkTimeNode* currentWT = WTNode;
+    while (currentWT != NULL) {
+        if (strcmp(currentWT->WT.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentWT; 
+        }
+        currentWT = currentWT->next;
+    }
+    
+    printf("No data found in Work Time Tracking Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct DayOffNode* findDayOffData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct DayOffNode* currentDOff = DONode;
+    while (currentDOff != NULL) {
+        if (strcmp(currentDOff->DOff.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentDOff; 
+        }
+        currentDOff = currentDOff->next;
+    }
+    
+    printf("No data found in Day Off Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct EducationNode* findEducationData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct EducationNode* currentE = ENode;
+    while (currentE != NULL) {
+        if (strcmp(currentE->E.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentE; 
+        }
+        currentE = currentE->next;
+    }
+    
+    printf("No data found in Education Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+struct LayOffNode* findLayOffData(const char* employeeID) {
+    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
+    
+    struct LayOffNode* currentLO = LONode;
+    while (currentLO != NULL) {
+        if (strcmp(currentLO->LO.EmployeeID, employeeID) == 0) {
+            printf("\n--- Employee Data Found! ---\n");
+            return currentLO; 
+        }
+        currentLO = currentLO->next;
+    }
+    
+    printf("No data found in Lay Off Data for Employee ID: %s\n", employeeID);
+    return NULL; // Return NULL if no data is found
+}
+
+void deleteEmployee(const char* employeeID) {
+    struct EmployeeDataNode* current = EDNode;
+    struct EmployeeDataNode* prev = NULL;
+    while (current != NULL && strcmp(current->PD.EmployeeID, employeeID) != 0) {
+        prev = current;
+        current = current->next;
+    }
+    if (current == NULL) {
+        printf("No employee found with ID: %s\n", employeeID);
+        return;
+    }
+    if (prev == NULL) {
+        EDNode = current->next;
+    } else {
+        prev->next = current->next;
+    }
+    free(current);
+    printf("Employee %s deleted from memory.\n", employeeID);
+
+    // Xóa khỏi dulieu_nhanvien.txt
+    FILE* file = fopen("dulieu_nhanvien.txt", "r");
+    if (!file) {
+        printf("Cannot open employee file to read!\n");
+        return;
+    }
+    FILE* tempFile = fopen("temp_nhanvien.txt", "w");
+    if (!tempFile) {
+        printf("Cannot open temp file to write!\n");
+        fclose(file);
+        return;
+    }
+    char line[1024], fileID[100];
+    int found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        sscanf(line, "%[^|]", fileID);
+        if (strcmp(fileID, employeeID) != 0) {
+            fprintf(tempFile, "%s", line);
+        } else {
+            found = 1;
+        }
+    }
+    fclose(tempFile);
+    fclose(file);
+    if (found) {
+        remove("dulieu_nhanvien.txt");
+        rename("temp_nhanvien.txt", "dulieu_nhanvien.txt");
+        printf("Employee %s removed from employee file.\n");
+    } else {
+        remove("temp_nhanvien.txt");
+        printf("Employee %s not found in employee file.\n", employeeID);
+    }
+
+    // Xóa khỏi worktime.txt
+    file = fopen("worktime.txt", "r");
+    if (file) {
+        tempFile = fopen("temp_worktime.txt", "w");
+        if (tempFile) {
+            found = 0;
+            while (fgets(line, sizeof(line), file)) {
+                sscanf(line, "%[^|]", fileID);
+                if (strcmp(fileID, employeeID) != 0) {
+                    fprintf(tempFile, "%s", line);
+                } else {
+                    found = 1;
+                }
+            }
+            fclose(tempFile);
+            fclose(file);
+            if (found) {
+                remove("worktime.txt");
+                rename("temp_worktime.txt", "worktime.txt");
+                printf("Employee %s removed from work time file.\n");
+            } else {
+                remove("temp_worktime.txt");
+            }
+        } else {
+            fclose(file);
+        }
+    }
+
+    // Xóa khỏi dayoff.txt
+    file = fopen("dayoff.txt", "r");
+    if (file) {
+        tempFile = fopen("temp_dayoff.txt", "w");
+        if (tempFile) {
+            found = 0;
+            while (fgets(line, sizeof(line), file)) {
+                sscanf(line, "%[^|]", fileID);
+                if (strcmp(fileID, employeeID) != 0) {
+                    fprintf(tempFile, "%s", line);
+                } else {
+                    found = 1;
+                }
+            }
+            fclose(tempFile);
+            fclose(file);
+            if (found) {
+                remove("dayoff.txt");
+                rename("temp_dayoff.txt", "dayoff.txt");
+                printf("Employee %s removed from day off file.\n");
+            } else {
+                remove("temp_dayoff.txt");
+            }
+        } else {
+            fclose(file);
+        }
+    }
+
+    // Xóa khỏi education.txt
+    file = fopen("education.txt", "r");
+    if (file) {
+        tempFile = fopen("temp_education.txt", "w");
+        if (tempFile) {
+            found = 0;
+            while (fgets(line, sizeof(line), file)) {
+                sscanf(line, "%[^|]", fileID);
+                if (strcmp(fileID, employeeID) != 0) {
+                    fprintf(tempFile, "%s", line);
+                } else {
+                    found = 1;
+                }
+            }
+            fclose(tempFile);
+            fclose(file);
+            if (found) {
+                remove("education.txt");
+                rename("temp_education.txt", "education.txt");
+                printf("Employee %s removed from education file.\n");
+            } else {
+                remove("temp_education.txt");
+            }
+        } else {
+            fclose(file);
+        }
+    }
+
+    // Xóa khỏi layoff.txt
+    file = fopen("layoff.txt", "r");
+    if (file) {
+        tempFile = fopen("temp_layoff.txt", "w");
+        if (tempFile) {
+            found = 0;
+            while (fgets(line, sizeof(line), file)) {
+                sscanf(line, "%[^|]", fileID);
+                if (strcmp(fileID, employeeID) != 0) {
+                    fprintf(tempFile, "%s", line);
+                } else {
+                    found = 1;
+                }
+            }
+            fclose(tempFile);
+            fclose(file);
+            if (found) {
+                remove("layoff.txt");
+                rename("temp_layoff.txt", "layoff.txt");
+                printf("Employee %s removed from layoff file.\n", employeeID);
+            } else {
+                remove("temp_layoff.txt");
+            }
+        } else {
+            fclose(file);
+        }
+    }
 }
 
 
@@ -1008,179 +1577,7 @@ void freeAllLists() {
     LONode = NULL;
 }
 
-struct EmployeeDataNode* findEmployeeData(const char* employeeID) {
-    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
-    
-    struct EmployeeDataNode* currentED = EDNode;
-    while (currentED != NULL) {
-        if (strcmp(currentED->PD.EmployeeID, employeeID) == 0) {
-            printf("\n--- Employee Data Found! ---\n");
-            return currentED; 
-        }
-        currentED = currentED->next;
-    }
-    
-    printf("No data found in Employee Data for Employee ID: %s\n", employeeID);
-    return NULL; // Return NULL if no data is found
-}
 
-struct WorkTimeNode* findWorkTimeData(const char* employeeID) {
-    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
-    
-    struct WorkTimeNode* currentWT = WTNode;
-    while (currentWT != NULL) {
-        if (strcmp(currentWT->WT.EmployeeID, employeeID) == 0) {
-            printf("\n--- Employee Data Found! ---\n");
-            return currentWT; 
-        }
-        currentWT = currentWT->next;
-    }
-    
-    printf("No data found in Work Time Tracking Data for Employee ID: %s\n", employeeID);
-    return NULL; // Return NULL if no data is found
-}
-
-struct DayOffNode* findDayOffData(const char* employeeID) {
-    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
-    
-    struct DayOffNode* currentDOff = DONode;
-    while (currentDOff != NULL) {
-        if (strcmp(currentDOff->DOff.EmployeeID, employeeID) == 0) {
-            printf("\n--- Employee Data Found! ---\n");
-            return currentDOff; 
-        }
-        currentDOff = currentDOff->next;
-    }
-    
-    printf("No data found in Day Off Data for Employee ID: %s\n", employeeID);
-    return NULL; // Return NULL if no data is found
-}
-
-struct EducationNode* findEducationData(const char* employeeID) {
-    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
-    
-    struct EducationNode* currentE = ENode;
-    while (currentE != NULL) {
-        if (strcmp(currentE->E.EmployeeID, employeeID) == 0) {
-            printf("\n--- Employee Data Found! ---\n");
-            return currentE; 
-        }
-        currentE = currentE->next;
-    }
-    
-    printf("No data found in Education Data for Employee ID: %s\n", employeeID);
-    return NULL; // Return NULL if no data is found
-}
-
-struct LayOffNode* findLayOffData(const char* employeeID) {
-    printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
-    
-    struct LayOffNode* currentLO = LONode;
-    while (currentLO != NULL) {
-        if (strcmp(currentLO->LO.EmployeeID, employeeID) == 0) {
-            printf("\n--- Employee Data Found! ---\n");
-            return currentLO; 
-        }
-        currentLO = currentLO->next;
-    }
-    
-    printf("No data found in Lay Off Data for Employee ID: %s\n", employeeID);
-    return NULL; // Return NULL if no data is found
-}
-
-void deleteEmployee(const char* employeeID) {
-    struct EmployeeDataNode *current = EDNode, *prev = NULL;
-    while (current != NULL && strcmp(current->PD.EmployeeID, employeeID) != 0) {
-        prev = current;
-        current = current->next;
-    }
-    if (current == NULL) {
-        printf("No employee found with ID: %s\n", employeeID);
-        return;
-    }
-    if (prev == NULL) EDNode = current->next;
-    else prev->next = current->next;
-    free(current);
-    printf("Employee %s deleted from memory.\n", employeeID);
-    FILE* file = fopen("dulieu_nhanvien.txt", "r");
-    if (!file) {
-        printf("Cannot open file to read!\n");
-        return;
-    }
-    FILE* tempFile = fopen("temp_nhanvien.txt", "w");
-    if (!tempFile) {
-        printf("Cannot open temp file to write!\n");
-        fclose(file);
-        return;
-    }
-    char line[512], fileID[100];
-    int found = 0;
-    while (fgets(line, sizeof(line), file)) {
-        sscanf(line, "%[^|]", fileID);
-        if (strcmp(fileID, employeeID) != 0) fprintf(tempFile, "%s", line);
-        else found = 1;
-    }
-    fclose(file);
-    fclose(tempFile);
-    if (found) {
-        remove("dulieu_nhanvien.txt");
-        rename("temp_nhanvien.txt", "dulieu_nhanvien.txt");
-        printf("Employee %s removed from file.\n", employeeID);
-    } else {
-        remove("temp_nhanvien.txt");
-        printf("Employee %s not found in file.\n", employeeID);
-    }
-}
-
-// Read data from file
-void loadEmployeesFromFile(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        printf("No existing employee file found. Starting fresh.\n");
-        return;
-    }
-    char line[512];
-    while (fgets(line, sizeof(line), file)) {
-        struct EmployeeDataNode* newNode = (struct EmployeeDataNode*)malloc(sizeof(struct EmployeeDataNode));
-        if (newNode == NULL) {
-            printf("Memory allocation failed. Skipping record.\n");
-            continue;
-        }
-        char genderStr[10];
-        sscanf(line, "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]",
-               newNode->PD.EmployeeID, newNode->PD.Name, newNode->PD.Birth, genderStr,
-               newNode->PD.NationalID, newNode->PD.TaxNumber, newNode->PD.PhoneNumber, newNode->PD.Email);
-        newNode->PD.Gender = strcmp(genderStr, "Male") == 0 ? Male : Female;
-        // Initialize default values for EmploymentContract
-        newNode->EC.Type = Probation;
-        strcpy(newNode->EC.LaborDate, "01/01/00 - 01/01/00");
-        strcpy(newNode->EC.Pos, "Unknown");
-        strcpy(newNode->EC.Dept, "Unknown");
-        newNode->EC.DealtSalary = 0;
-        // Initialize default values for Insurance
-        strcpy(newNode->I.BHXH.Code, "N/A");
-        newNode->I.BHXH.PayLevel = 0.0;
-        strcpy(newNode->I.BHXH.InsuranceDate, "N/A");
-        strcpy(newNode->I.BHYT.Code, "N/A");
-        newNode->I.BHYT.PayLevel = 0.0;
-        strcpy(newNode->I.BHYT.InsuranceDate, "N/A");
-        strcpy(newNode->I.BHTN.Code, "N/A");
-        newNode->I.BHTN.PayLevel = 0.0;
-        strcpy(newNode->I.BHTN.InsuranceDate, "N/A");
-        // Initialize default values for SalaryManaging
-        newNode->SM.BaseSalary = 0;
-        newNode->SM.WorkTimeThisMonth = 0;
-        newNode->SM.Allowance[0] = newNode->SM.Allowance[1] = newNode->SM.Allowance[2] = 0;
-        newNode->SM.Bonus[0] = newNode->SM.Bonus[1] = newNode->SM.Bonus[2] = 0;
-        newNode->SM.Tax = 0.0;
-        newNode->SM.FinalSalary = 0;
-        newNode->SM.Method = Cash;
-        newNode->next = EDNode;
-        EDNode = newNode;
-    }
-    fclose(file);
-    printf("Employee data loaded successfully from %s\n", filename);
-}
 
 int main(){
     int choice1, choice2, choice3;
@@ -1195,6 +1592,10 @@ int main(){
     LayOff newLO;
     
     loadEmployeesFromFile("dulieu_nhanvien.txt");
+    loadWorkTimeFromFile("worktime.txt");
+    loadDayOffFromFile("dayoff.txt");
+    loadEducationFromFile("education.txt");
+    loadLayOffFromFile("layoff.txt");
     printf("Welcome to the Human Resource Managing System!\n");
 
 
@@ -1288,7 +1689,7 @@ int main(){
                 break;
             case 3:
                 printf("\n--- HUMAN RESOURCE MANAGING SYSTEM MENU ---\n");
-                printf("\n--- FIND AND DISPlAY DATA ---\n");
+                printf("\n--- FIND AND DISPLAY DATA ---\n");
                 printf("1. Employee Data\n");
                 printf("2. Work Time Tracking Data\n");
                 printf("3. Dayoff Data\n");
@@ -1324,8 +1725,11 @@ int main(){
                 
             case 4:
                 printf("\n--- UPDATE DATA ---\n");
-                printf("1. Update Personal Data\n2. Update Tracking Time\n3. Update Day Off Data\n");
-                printf("4. Update Education Data\n5. Return\n");
+                printf("1. Update Personal Data\n");
+                printf("2. Update Tracking Time\n");
+                printf("3. Update Day Off Data\n");
+                printf("4. Update Education Data\n");
+                printf("5. Return\n");
                 printf("Enter your choice: ");
                 scanf("%d", &choice2);
                 clear_input_buffer();
@@ -1359,13 +1763,9 @@ int main(){
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-        
-        clear_input_buffer();
+
         printf("\nPress Enter to continue...\n");
-        getchar(); // Wait for user to press Enter
-        freeAllLists(); // Free all lists before next iteration
-        printf("\nReturning to main menu...\n");
-        clear_input_buffer();
+        getchar();
      
     } while (choice1 != 7);
 
