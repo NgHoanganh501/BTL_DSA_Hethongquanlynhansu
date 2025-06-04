@@ -1891,48 +1891,6 @@ void DepartmentReport() {
     printf("=============================================\n");
 }
 
-// void ReportPrint(){
-//     printf("\nGENERATING HR REPORT\n");
-//     HRReport report = {0};
-//     int employeeCount = 0, layoffCount = 0;
-//     long long totalSalary = 0;
-//     double totalInsuranceFee = 0;
-//     long long totalEducationFee = 0;
-
-//     // Calculate employee statistics
-//     struct EmployeeDataNode* emp = EDNode;
-//     while(emp != NULL) {
-//         employeeCount++;
-//         totalSalary += emp->SM.FinalSalary;
-//         totalInsuranceFee += (emp->I.BHXH.PayLevel + emp->I.BHYT.PayLevel + emp->I.BHTN.PayLevel) * emp->SM.BaseSalary;
-//         emp = emp->next;
-//     }
-
-//     // Calculate layoff statistics
-//     struct LayOffNode* lo = LONode;
-//     while(lo != NULL) {
-//         layoffCount++;
-//         lo = lo->next;
-//     }
-
-//     // Calculate education fees
-//     struct EducationNode* edu = ENode;
-//     while(edu != NULL) {
-//         totalEducationFee += edu->E.CourseFee;
-//         edu = edu->next;
-//     }
-
-//     report.LayOffRatio = employeeCount ? (double)layoffCount / employeeCount : 0;
-//     report.SalaryFee = totalSalary;
-//     report.InsuranceFee = totalInsuranceFee;
-//     report.EducationFee = totalEducationFee;
-
-//     printf("Total Employees: %d\n", employeeCount);
-//     printf("Layoff Ratio: %.2f%%\n", report.LayOffRatio * 100);
-//     printf("Total Salary Expenses: %lld\n", report.SalaryFee);
-//     printf("Total Insurance Fees: %.2f\n", report.InsuranceFee);
-//     printf("Total Education Fees: %lld\n", report.EducationFee);
-// }
 
 void freeAllLists() {
     struct EmployeeDataNode* emp = EDNode;
