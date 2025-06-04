@@ -87,7 +87,7 @@ const char* paymentToString(Payment method){
 int FinalSalaryCalculation(long long baseSalary, int workTimeThisMonth, long long allowance[3], long long bonus[3], double taxRate) {
     long long totalAllowance = allowance[0] + allowance[1] + allowance[2];
     long long totalBonus = bonus[0] + bonus[1] + bonus[2];
-    long long grossSalary = baseSalary + (workTimeThisMonth * (baseSalary / 160)) + totalAllowance + totalBonus; // Assuming 160 hours in a month
+    long long grossSalary = baseSalary + (workTimeThisMonth * (baseSalary / 160)) + totalAllowance + totalBonus; 
     return (int)(grossSalary * (1 - taxRate));
 }
 
@@ -97,7 +97,7 @@ typedef struct {
     long long Allowance[3]; // Lunch, transportation, residence
     long long Bonus[3]; // KPIs, holidays, projects 
     double Tax;
-    long long FinalSalary; // Calculated
+    long long FinalSalary; 
     Payment Method;
 } SalaryManaging;
 
@@ -221,12 +221,24 @@ typedef struct {
     int EducationFee;
 } HRReport;
 
+typedef struct {
+    char DeptID[50];
+    char DeptName[50];
+    char ManagerID[100];
+} Department;
+
+struct DepartmentNode {
+    Department Dept;
+    struct DepartmentNode* next;
+};
+
 //Initializing the linked lists
 struct EmployeeDataNode* EDNode = NULL;
 struct WorkTimeNode* WTNode = NULL;
 struct DayOffNode* DONode = NULL;
 struct EducationNode* ENode = NULL;
 struct LayOffNode* LONode = NULL;
+struct DepartmentNode* DeptList = NULL;
 
 
 int getLastEmployeeID_FromFile(const char* filename) {
@@ -577,6 +589,7 @@ void updateEducationFile(const Education* e, const char* filename) {
     }
 }
 
+
 // LayOff
 void saveLayOffToFile(const LayOff* lo, const char* filename) {
     FILE* file = fopen(filename, "a");
@@ -649,6 +662,37 @@ void updateLayOffFile(const LayOff* lo, const char* filename) {
         remove("temp_layoff.txt");
         printf("Employee ID not found in layoff file.\n");
     }
+}
+
+void saveDepartmentToFile(const Department* dept, const char* filename) {
+    FILE* file = fopen(filename, "a");
+    if (!file) {
+        printf("Cannot open file %s to write!\n", filename);
+        return;
+    }
+    fprintf(file, "%s|%s|%s\n", dept->DeptID, dept->DeptName, dept->ManagerID);
+    fclose(file);
+}
+
+void loadDepartmentsFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        printf("No existing department file found. Starting fresh.\n");
+        return;
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        struct DepartmentNode* newNode = (struct DepartmentNode*)malloc(sizeof(struct DepartmentNode));
+        if (newNode == NULL) {
+            printf("Memory allocation failed. Skipping record.\n");
+            continue;
+        }
+        sscanf(line, "%[^|]|%[^|]|%[^|\n]", newNode->Dept.DeptID, newNode->Dept.DeptName, newNode->Dept.ManagerID);
+        newNode->next = DeptList;
+        DeptList = newNode;
+    }
+    fclose(file);
+    printf("Department data loaded successfully from %s\n", filename);
 }
 
 void generateEmployeeID(char* newID, const char* filename) {
@@ -885,6 +929,22 @@ void LayOffInput(LayOff *lo){
     lo->Reason = (LayOffReason)rson;
 }
 
+void addDepartment() {
+    struct DepartmentNode* newNode = (struct DepartmentNode*)malloc(sizeof(struct DepartmentNode));
+    if (newNode == NULL) {
+        printf("Failed to add department!\n");
+        return;
+    }
+    printf("\n--- ADD NEW DEPARTMENT ---\n");
+    getStringInput(newNode->Dept.DeptID, sizeof(newNode->Dept.DeptID), "Enter Department ID (e.g., IT01): ");
+    getStringInput(newNode->Dept.DeptName, sizeof(newNode->Dept.DeptName), "Enter Department Name: ");
+    getStringInput(newNode->Dept.ManagerID, sizeof(newNode->Dept.ManagerID), "Enter Manager Employee ID: ");
+    newNode->next = DeptList;
+    DeptList = newNode;
+    saveDepartmentToFile(&newNode->Dept, "departments.txt");
+    printf("Department added successfully!\n");
+}
+
 void EmployeeDataTraverse(const char* employeeID){
     printf("\nDISPLAYING EMPLOYEE DATA\n");
     struct EmployeeDataNode* index = EDNode;
@@ -992,7 +1052,50 @@ void LayOffTraverse(const char* employeeID){
     if (!found && employeeID != NULL) printf("No layoff data found for ID: %s\n", employeeID);
 }
 
-//Update functions
+void DepartmentTraverse() {
+    if (EDNode == NULL) {
+        printf("Danh sách nhân viên trống!\n");
+        return;
+    }
+
+    char departments[100][20];
+    int deptCount = 0;
+    struct EmployeeDataNode* current = EDNode;
+    while (current != NULL) {
+        int found = 0;
+        for (int i = 0; i < deptCount; i++) {
+            if (strcmp(departments[i], current->EC.Dept) == 0) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            strcpy(departments[deptCount], current->EC.Dept);
+            deptCount++;
+        }
+        current = current->next;
+    }
+
+    printf("\n========== NHAN VIEN THEO PHONG BAN ==========\n");
+    for (int i = 0; i < deptCount; i++) {
+        printf("\nPhong ban: %s\n", departments[i]);
+        printf("+---------------------------------------------+\n");
+        printf("| %-20s | %-20s |\n", "Ten", "Chuc vu");
+        printf("+---------------------------------------------+\n");
+
+        current = EDNode;
+        while (current != NULL) {
+            if (strcmp(current->EC.Dept, departments[i]) == 0) {
+                printf("| %-20s | %-20s |\n", current->PD.Name, current->EC.Pos);
+            }
+            current = current->next;
+        }
+        printf("+---------------------------------------------+\n");
+    }
+    printf("==============================================\n");
+}
+
+//UPDATE FUNCTIONS
 void updatePersonalData() {
     char employeeID[100];
     printf("\n--- UPDATE PERSONAL DATA ---\n");
@@ -1244,7 +1347,39 @@ void updateTrackingData() {
     } while (choice != 4);
 }
 
+void updateDepartment() {
+    if (DeptList == NULL) {
+        printf("No departments to update!\n");
+        return;
+    }
+    char deptID[10];
+    getStringInput(deptID, sizeof(deptID), "Enter Department ID to update: ");
+    struct DepartmentNode* current = DeptList;
+    struct DepartmentNode* prev = NULL;
+    while (current != NULL && strcmp(current->Dept.DeptID, deptID) != 0) {
+        prev = current;
+        current = current->next;
+    }
+    if (current == NULL) {
+        printf("Department ID not found!\n");
+        return;
+    }
+    printf("\nCurrent Department: %s, Manager: %s\n", current->Dept.DeptName, current->Dept.ManagerID);
+    getStringInput(current->Dept.DeptName, sizeof(current->Dept.DeptName), "Enter new Department Name: ");
+    getStringInput(current->Dept.ManagerID, sizeof(current->Dept.ManagerID), "Enter new Manager Employee ID (or leave blank): ");
+    FILE* file = fopen("departments.txt", "w");
+    if (file) {
+        struct DepartmentNode* temp = DeptList;
+        while (temp != NULL) {
+            fprintf(file, "%s|%s|%s\n", temp->Dept.DeptID, temp->Dept.DeptName, temp->Dept.ManagerID);
+            temp = temp->next;
+        }
+        fclose(file);
+        printf("Department updated successfully!\n");
+    }
+}
 
+//FIND FUNCTIONS
 struct EmployeeDataNode* findEmployeeData(const char* employeeID) {
     printf("\n--- SEARCHING FOR EMPLOYEE DATA (ID: %s) ---\n", employeeID);
     
@@ -1324,6 +1459,8 @@ struct LayOffNode* findLayOffData(const char* employeeID) {
     printf("No data found in Lay Off Data for Employee ID: %s\n", employeeID);
     return NULL; // Return NULL if no data is found
 }
+
+// DELETE FUNCTIONS
 
 void deleteEmployee(const char* employeeID) {
     struct EmployeeDataNode* current = EDNode;
@@ -1490,49 +1627,312 @@ void deleteEmployee(const char* employeeID) {
     }
 }
 
+void deleteDepartment() {
+    if (DeptList == NULL) {
+        printf("No departments to delete!\n");
+        return;
+    }
+    char deptID[10];
+    getStringInput(deptID, sizeof(deptID), "Enter Department ID to delete: ");
+    struct DepartmentNode* current = DeptList;
+    struct DepartmentNode* prev = NULL;
+    while (current != NULL && strcmp(current->Dept.DeptID, deptID) != 0) {
+        prev = current;
+        current = current->next;
+    }
+    if (current == NULL) {
+        printf("Department ID not found!\n");
+        return;
+    }
+    // Kiểm tra nếu có nhân viên trong phòng ban
+    struct EmployeeDataNode* emp = EDNode;
+    int hasEmployees = 0;
+    while (emp != NULL) {
+        if (strcmp(emp->EC.Dept, current->Dept.DeptName) == 0) {
+            hasEmployees = 1;
+            break;
+        }
+        emp = emp->next;
+    }
+    if (hasEmployees) {
+        printf("Cannot delete department %s. It still has employees!\n", current->Dept.DeptName);
+        return;
+    }
+    if (prev == NULL) {
+        DeptList = current->next;
+    } else {
+        prev->next = current->next;
+    }
+    free(current);
+    FILE* file = fopen("departments.txt", "w");
+    if (file) {
+        struct DepartmentNode* temp = DeptList;
+        while (temp != NULL) {
+            fprintf(file, "%s|%s|%s\n", temp->Dept.DeptID, temp->Dept.DeptName, temp->Dept.ManagerID);
+            temp = temp->next;
+        }
+        fclose(file);
+        printf("Department deleted successfully!\n");
+    }
+}
 
-void ReportPrint(){
-    printf("\nGENERATING HR REPORT\n");
+void transferEmployeeToDepartment() {
+    char employeeID[100], newDept[20];
+    getStringInput(employeeID, sizeof(employeeID), "Enter Employee ID to transfer: ");
+    struct EmployeeDataNode* emp = findEmployeeData(employeeID);
+    if (emp == NULL) return;
+
+    printf("Current Department: %s\n", emp->EC.Dept);
+    getStringInput(newDept, sizeof(newDept), "Enter new Department: ");
+    strcpy(emp->EC.Dept, newDept);
+    updateEmployeeFile(emp, "dulieu_nhanvien.txt");
+    printf("Employee %s transferred to department %s successfully.\n", employeeID, newDept);
+}
+
+
+void ReportPrint() { 
+    printf("\n======================================\n"); 
+    printf(" HUMAN RESOURCE REPORT \n"); 
+    printf("======================================\n");
     HRReport report = {0};
     int employeeCount = 0, layoffCount = 0;
     long long totalSalary = 0;
     double totalInsuranceFee = 0;
     long long totalEducationFee = 0;
-
-    // Calculate employee statistics
-    struct EmployeeDataNode* emp = EDNode;
-    while(emp != NULL) {
-        employeeCount++;
-        totalSalary += emp->SM.FinalSalary;
-        totalInsuranceFee += (emp->I.BHXH.PayLevel + emp->I.BHYT.PayLevel + emp->I.BHTN.PayLevel) * emp->SM.BaseSalary;
-        emp = emp->next;
-    }
-
-    // Calculate layoff statistics
-    struct LayOffNode* lo = LONode;
-    while(lo != NULL) {
-        layoffCount++;
-        lo = lo->next;
-    }
-
-    // Calculate education fees
-    struct EducationNode* edu = ENode;
-    while(edu != NULL) {
-        totalEducationFee += edu->E.CourseFee;
-        edu = edu->next;
-    }
-
-    report.LayOffRatio = employeeCount ? (double)layoffCount / employeeCount : 0;
-    report.SalaryFee = totalSalary;
-    report.InsuranceFee = totalInsuranceFee;
-    report.EducationFee = totalEducationFee;
-
-    printf("Total Employees: %d\n", employeeCount);
-    printf("Layoff Ratio: %.2f%%\n", report.LayOffRatio * 100);
-    printf("Total Salary Expenses: %lld\n", report.SalaryFee);
-    printf("Total Insurance Fees: %.2f\n", report.InsuranceFee);
-    printf("Total Education Fees: %lld\n", report.EducationFee);
+// Calculate employee statistics
+struct EmployeeDataNode* emp = EDNode;
+while (emp != NULL) {
+    employeeCount++;
+    totalSalary += emp->SM.FinalSalary;
+    totalInsuranceFee += (emp->I.BHXH.PayLevel + emp->I.BHYT.PayLevel + emp->I.BHTN.PayLevel) * emp->SM.BaseSalary / 100.0;
+    emp = emp->next;
 }
+
+// Calculate layoff statistics
+struct LayOffNode* lo = LONode;
+while (lo != NULL) {
+    layoffCount++;
+    lo = lo->next;
+}
+
+// Calculate education fees
+struct EducationNode* edu = ENode;
+while (edu != NULL) {
+    totalEducationFee += edu->E.CourseFee;
+    edu = edu->next;
+}
+
+report.LayOffRatio = employeeCount ? (double)layoffCount / employeeCount : 0;
+report.SalaryFee = totalSalary;
+report.InsuranceFee = totalInsuranceFee;
+report.EducationFee = totalEducationFee;
+
+// Determine the maximum width for the "Metric" and "Value" columns
+const char* metrics[] = {
+    "Total Employees",
+    "Layoff Ratio",
+    "Total Salary Expenses",
+    "Total Insurance Fees",
+    "Total Education Fees"
+};
+int num_metrics = sizeof(metrics) / sizeof(metrics[0]);
+int max_metric_len = strlen("Metric"); // Initial length of header
+int max_value_len = strlen("Value");   // Initial length of header
+
+// Find the longest metric name
+for (int i = 0; i < num_metrics; i++) {
+    int len = strlen(metrics[i]);
+    if (len > max_metric_len) {
+        max_metric_len = len;
+    }
+}
+
+// Find the longest value (convert numbers to strings to calculate length)
+char value_str[50];
+snprintf(value_str, sizeof(value_str), "%d", employeeCount);
+int len = strlen(value_str);
+if (len > max_value_len) max_value_len = len;
+
+snprintf(value_str, sizeof(value_str), "%.2f%%", report.LayOffRatio * 100);
+len = strlen(value_str);
+if (len > max_value_len) max_value_len = len;
+
+snprintf(value_str, sizeof(value_str), "%lld VND", report.SalaryFee);
+len = strlen(value_str);
+if (len > max_value_len) max_value_len = len;
+
+snprintf(value_str, sizeof(value_str), "%.2f VND", report.InsuranceFee);
+len = strlen(value_str);
+if (len > max_value_len) max_value_len = len;
+
+snprintf(value_str, sizeof(value_str), "%lld VND", report.EducationFee);
+len = strlen(value_str);
+if (len > max_value_len) max_value_len = len;
+
+// Add padding for better appearance (2 spaces on each side of the content)
+int metric_col_width = max_metric_len + 4; // 2 spaces padding on each side
+int value_col_width = max_value_len + 4;
+
+// Prepare value strings for printing
+char value_strings[5][50];
+snprintf(value_strings[0], sizeof(value_strings[0]), "%d", employeeCount);
+snprintf(value_strings[1], sizeof(value_strings[1]), "%.2f%%", report.LayOffRatio * 100);
+snprintf(value_strings[2], sizeof(value_strings[2]), "%lld VND", report.SalaryFee);
+snprintf(value_strings[3], sizeof(value_strings[3]), "%.2f VND", report.InsuranceFee);
+snprintf(value_strings[4], sizeof(value_strings[4]), "%lld VND", report.EducationFee);
+
+// Print the table
+// Top border
+printf("+");
+for (int i = 0; i < metric_col_width; i++) printf("-");
+printf("+");
+for (int i = 0; i < value_col_width; i++) printf("-");
+printf("+\n");
+
+// Header row
+printf("| %-*s | %-*s |\n", metric_col_width - 2, "Metric", value_col_width - 2, "Value");
+
+// Separator row
+printf("+");
+for (int i = 0; i < metric_col_width; i++) printf("-");
+printf("+");
+for (int i = 0; i < value_col_width; i++) printf("-");
+printf("+\n");
+
+// Data rows
+for (int i = 0; i < num_metrics; i++) {
+    printf("| %-*s | %-*s |\n", metric_col_width - 2, metrics[i], value_col_width - 2, value_strings[i]);
+}
+
+// Bottom border
+printf("+");
+for (int i = 0; i < metric_col_width; i++) printf("-");
+printf("+");
+for (int i = 0; i < value_col_width; i++) printf("-");
+printf("+\n");
+}
+
+void DepartmentReport() {
+    if (EDNode == NULL) {
+        printf("Danh sách nhân viên trống!\n");
+        return;
+    }
+
+    char departments[100][20];
+    int deptCount = 0;
+    struct EmployeeDataNode* current = EDNode;
+    while (current != NULL) {
+        int found = 0;
+        for (int i = 0; i < deptCount; i++) {
+            if (strcmp(departments[i], current->EC.Dept) == 0) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            strcpy(departments[deptCount], current->EC.Dept);
+            deptCount++;
+        }
+        current = current->next;
+    }
+
+    printf("\n========== THONG KE THEO PHONG BAN ==========\n");
+    for (int i = 0; i < deptCount; i++) {
+        int empCount = 0;
+        long long totalSalary = 0;
+        int layoffCount = 0;
+        long long totalEducationFee = 0;
+
+        // Đếm nhân viên và lương
+        current = EDNode;
+        while (current != NULL) {
+            if (strcmp(current->EC.Dept, departments[i]) == 0) {
+                empCount++;
+                totalSalary += current->SM.FinalSalary;
+            }
+            current = current->next;
+        }
+
+        // Đếm số nhân viên nghỉ việc
+        struct LayOffNode* lo = LONode;
+        while (lo != NULL) {
+            struct EmployeeDataNode* emp = EDNode;
+            while (emp != NULL) {
+                if (strcmp(emp->PD.EmployeeID, lo->LO.EmployeeID) == 0 && strcmp(emp->EC.Dept, departments[i]) == 0) {
+                    layoffCount++;
+                    break;
+                }
+                emp = emp->next;
+            }
+            lo = lo->next;
+        }
+
+        // Tính chi phí đào tạo
+        struct EducationNode* edu = ENode;
+        while (edu != NULL) {
+            struct EmployeeDataNode* emp = EDNode;
+            while (emp != NULL) {
+                if (strcmp(emp->PD.EmployeeID, edu->E.EmployeeID) == 0 && strcmp(emp->EC.Dept, departments[i]) == 0) {
+                    totalEducationFee += edu->E.CourseFee;
+                    break;
+                }
+                emp = emp->next;
+            }
+            edu = edu->next;
+        }
+
+        double layoffRatio = empCount ? (double)layoffCount / empCount * 100 : 0;
+        printf("\nPhong ban: %s\n", departments[i]);
+        printf("So nhan vien: %d\n", empCount);
+        printf("Ty le nghi viec: %.2f%%\n", layoffRatio);
+        printf("Tong chi phi luong: %lld VND\n", totalSalary);
+        printf("Tong chi phi dao tao: %lld VND\n", totalEducationFee);
+    }
+    printf("=============================================\n");
+}
+
+// void ReportPrint(){
+//     printf("\nGENERATING HR REPORT\n");
+//     HRReport report = {0};
+//     int employeeCount = 0, layoffCount = 0;
+//     long long totalSalary = 0;
+//     double totalInsuranceFee = 0;
+//     long long totalEducationFee = 0;
+
+//     // Calculate employee statistics
+//     struct EmployeeDataNode* emp = EDNode;
+//     while(emp != NULL) {
+//         employeeCount++;
+//         totalSalary += emp->SM.FinalSalary;
+//         totalInsuranceFee += (emp->I.BHXH.PayLevel + emp->I.BHYT.PayLevel + emp->I.BHTN.PayLevel) * emp->SM.BaseSalary;
+//         emp = emp->next;
+//     }
+
+//     // Calculate layoff statistics
+//     struct LayOffNode* lo = LONode;
+//     while(lo != NULL) {
+//         layoffCount++;
+//         lo = lo->next;
+//     }
+
+//     // Calculate education fees
+//     struct EducationNode* edu = ENode;
+//     while(edu != NULL) {
+//         totalEducationFee += edu->E.CourseFee;
+//         edu = edu->next;
+//     }
+
+//     report.LayOffRatio = employeeCount ? (double)layoffCount / employeeCount : 0;
+//     report.SalaryFee = totalSalary;
+//     report.InsuranceFee = totalInsuranceFee;
+//     report.EducationFee = totalEducationFee;
+
+//     printf("Total Employees: %d\n", employeeCount);
+//     printf("Layoff Ratio: %.2f%%\n", report.LayOffRatio * 100);
+//     printf("Total Salary Expenses: %lld\n", report.SalaryFee);
+//     printf("Total Insurance Fees: %.2f\n", report.InsuranceFee);
+//     printf("Total Education Fees: %lld\n", report.EducationFee);
+// }
 
 void freeAllLists() {
     struct EmployeeDataNode* emp = EDNode;
@@ -1569,12 +1969,20 @@ void freeAllLists() {
         lo = lo->next;
         free(temp);
     }
+
+    struct DepartmentNode* currentDept = DeptList;
+    while (currentDept != NULL) {
+        struct DepartmentNode* temp = currentDept;
+        currentDept = currentDept->next;
+        free(temp);
+    }
     
     EDNode = NULL;
     WTNode = NULL;
     DONode = NULL;
     ENode = NULL;
     LONode = NULL;
+    DeptList = NULL;
 }
 
 
@@ -1596,6 +2004,7 @@ int main(){
     loadDayOffFromFile("dayoff.txt");
     loadEducationFromFile("education.txt");
     loadLayOffFromFile("layoff.txt");
+    loadDepartmentsFromFile("departments.txt");
     printf("Welcome to the Human Resource Managing System!\n");
 
 
@@ -1608,7 +2017,10 @@ int main(){
         printf("4. Update Data\n");
         printf("5. Delete an Employee\n");
         printf("6. Generate Report\n");
-        printf("7. Exit\n");
+        printf("7. Manage Departments\n");
+        printf("8. Display Employees by Department\n");
+        printf("9. Department Statistics\n");
+        printf("10.Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice1);
         clear_input_buffer();
@@ -1729,7 +2141,8 @@ int main(){
                 printf("2. Update Tracking Time\n");
                 printf("3. Update Day Off Data\n");
                 printf("4. Update Education Data\n");
-                printf("5. Return\n");
+                printf("5. Transfer Employee to Another Department\n");
+                printf("6. Return\n");
                 printf("Enter your choice: ");
                 scanf("%d", &choice2);
                 clear_input_buffer();
@@ -1742,7 +2155,9 @@ int main(){
                         break;
                     case 4: updateCourseData(); 
                         break;
-                    case 5: 
+                    case 5: transferEmployeeToDepartment();
+                        break;
+                    case 6:
                         break;
                     default: 
                         printf("Invalid choice.\n");
@@ -1757,17 +2172,48 @@ int main(){
                 ReportPrint();
                 break;
             case 7:
-                printf("Exiting program. Goodbye!\n");
-                freeAllLists();
+                printf("\n--- MANAGE DEPARTMENTS ---\n");
+                printf("1. Add New Department\n");
+                printf("2. Update Department\n");
+                printf("3. Delete Department\n");
+                printf("4. Return\n");
+                printf("Enter your choice: ");
+                scanf("%d", &choice2);
+                clear_input_buffer();
+                switch (choice2) {
+                    case 1:
+                        addDepartment();
+                        break;
+                    case 2:
+                        updateDepartment();
+                        break;
+                    case 3:
+                        deleteDepartment();
+                        break;
+                    case 4:
+                        break;
+                    default:
+                        printf("Invalid choice. Please try again\n");
+                }
                 break;
+            case 8: 
+                 DepartmentTraverse();
+                 break;
+            case 9: 
+                 DepartmentReport();
+                 break;
+            case 10: 
+                 printf("Exiting program. Goodbye!\n");
+                 freeAllLists();
+                 break;
             default:
-                printf("Invalid choice. Please try again.\n");
+                 printf("\nInvalid choice. Please try again.\n");
         }
 
         printf("\nPress Enter to continue...\n");
         getchar();
-     
-    } while (choice1 != 7);
-
+    } while (choice1 != 10);
+    
     return 0;
+
 }

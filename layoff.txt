@@ -1,1 +1,5 @@
-NV0004|30/06/24|ContractEnded
+NV0004|01/06/2025|Volunteered
+NV0008|01/06/2025|Fired
+NV0012|01/06/2025|ContractEnded
+NV0016|01/06/2025|Volunteered
+NV0024|01/10/2025|ContractEnded

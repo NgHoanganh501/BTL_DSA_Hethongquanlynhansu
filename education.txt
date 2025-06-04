@@ -1,5 +1,13 @@
-NV0001|Programming|40|1000000|Ongoing
-NV0002|Accounting|30|800000|Passed
-NV0003|Management|50|1500000|Passed
-NV0004|Design|20|500000|Ongoing
-NV0005|Engineering|60|1200000|Failed
+NV0001|Leadership Training|40|5000000|Passed
+NV0002|Python Programming|30|3000000|Ongoing
+NV0005|HR Management|50|6000000|Passed
+NV0007|Communication Skills|20|2000000|Passed
+NV0009|Sales Techniques|35|4000000|Ongoing
+NV0011|Negotiation Skills|25|2500000|Passed
+NV0013|Digital Marketing|45|5500000|Passed
+NV0015|SEO Basics|30|3000000|Ongoing
+NV0017|Advanced Python|40|4500000|Passed
+NV0019|Customer Service|20|2000000|Passed
+NV0021|Financial Management|50|6000000|Passed
+NV0023|Accounting Principles|30|3500000|Ongoing
+NV0025|Tax Regulations|25|3000000|Passed
