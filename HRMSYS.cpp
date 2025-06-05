@@ -101,6 +101,7 @@ typedef struct {
     Payment Method;
 } SalaryManaging;
 
+
 struct EmployeeDataNode {
     PersonalData PD;
     EmploymentContract EC;
@@ -2129,8 +2130,7 @@ int main(){
                 printf("2. Update Tracking Time\n");
                 printf("3. Update Day Off Data\n");
                 printf("4. Update Education Data\n");
-                printf("5. Transfer Employee to Another Department\n");
-                printf("6. Return\n");
+                printf("5. Return\n");
                 printf("Enter your choice: ");
                 scanf("%d", &choice2);
                 clear_input_buffer();
@@ -2143,9 +2143,7 @@ int main(){
                         break;
                     case 4: updateCourseData(); 
                         break;
-                    case 5: transferEmployeeToDepartment();
-                        break;
-                    case 6:
+                    case 5:
                         break;
                     default: 
                         printf("Invalid choice.\n");
@@ -2166,7 +2164,8 @@ int main(){
                 printf("3. Delete Department\n");
                 printf("4. Display All Departments and Employees\n");
                 printf("5. Find and Display Department by ID\n");
-                printf("6. Return\n");
+                printf("6. Transfer Employee to Another Department\n");
+                printf("7. Return\n");
                 printf("Enter your choice: ");
                 scanf("%d", &choice2);
                 clear_input_buffer();
@@ -2190,6 +2189,9 @@ int main(){
                         } else {
                             printf("Department ID not found.\n");
                         }
+                        break;
+                    case 6:
+                        transferEmployeeToDepartment();
                         break;
                     default:
                         printf("Invalid choice. Please try again\n");
