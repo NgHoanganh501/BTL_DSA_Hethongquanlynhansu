@@ -674,8 +674,10 @@ void saveDepartmentToFile(const Department* dept, const char* filename) {
     fclose(file);
 }
 
+// Department
 void loadDepartmentsFromFile(const char* filename) {
     FILE* file = fopen(filename, "r");
+    int count = 0;
     if (!file) {
         printf("No existing department file found. Starting fresh.\n");
         return;
@@ -687,13 +689,18 @@ void loadDepartmentsFromFile(const char* filename) {
             printf("Memory allocation failed. Skipping record.\n");
             continue;
         }
-        sscanf(line, "%[^|]|%[^|]|%[^|\n]", newNode->Dept.DeptID, newNode->Dept.DeptName, newNode->Dept.ManagerID);
+        if (sscanf(line, "%[^|]|%[^|]|%[^|\n]", newNode->Dept.DeptID, newNode->Dept.DeptName, newNode->Dept.ManagerID) != 3) {
+            printf("Invalid data format in line: %s", line);
+            free(newNode);
+            continue;
+        }
         newNode->next = DeptList;
         DeptList = newNode;
+        count++;
     }
     fclose(file);
     printf("Department data loaded successfully from %s\n", filename);
-}
+}   
 
 void generateEmployeeID(char* newID, const char* filename) {
     int lastID = getLastEmployeeID_FromFile(filename);
@@ -1052,47 +1059,59 @@ void LayOffTraverse(const char* employeeID){
     if (!found && employeeID != NULL) printf("No layoff data found for ID: %s\n", employeeID);
 }
 
-void DepartmentTraverse() {
-    if (EDNode == NULL) {
-        printf("Danh sách nhân viên trống!\n");
+void DepartmentTraverse(const char* deptID) {
+    printf("\n--- DISPLAYING DEPARTMENT DATA ---\n");
+    struct DepartmentNode* index = DeptList;
+    int found = 0;
+
+    if (index == NULL) {
+        printf("No departments found.\n");
+        printf("\nPress Enter to continue...\n");
+        getchar();
         return;
     }
 
-    char departments[100][20];
-    int deptCount = 0;
-    struct EmployeeDataNode* current = EDNode;
-    while (current != NULL) {
-        int found = 0;
-        for (int i = 0; i < deptCount; i++) {
-            if (strcmp(departments[i], current->EC.Dept) == 0) {
-                found = 1;
-                break;
+    while (index != NULL) {
+        if (deptID == NULL || strcmp(index->Dept.DeptID, deptID) == 0) {
+            found = 1;
+            printf("\nDEPARTMENT:\n");
+            printf("Department ID: %s\n", index->Dept.DeptID);
+            printf("Department Name: %s\n", index->Dept.DeptName);
+            printf("Manager ID: %s\n", index->Dept.ManagerID);
+
+            // Hiển thị nhân viên
+            printf("\n--- EMPLOYEES IN DEPARTMENT %s ---\n\n");
+            printf("+----------------------+--------------------------------+--------------------+\n");
+            printf("| %-20s | %-30s | %-18s |\n", "Employee ID", "Name", "Position");
+            printf("+----------------------+--------------------------------+--------------------+\n");
+
+            struct EmployeeDataNode* emp = EDNode;
+            int empFound = 0;
+            while (emp != NULL) {
+                if (strcmp(emp->EC.Dept, index->Dept.DeptName) == 0) {
+                    empFound = 1;
+                    printf("| %-20s | %-30s | %-18s |\n", emp->PD.EmployeeID, emp->PD.Name, emp->EC.Pos);
+                }
+                emp = emp->next;
             }
+
+            printf("+----------------------+--------------------------------+--------------------+\n");
+            if (!empFound) {
+                printf("No employees found in department %s.\n", index->Dept.DeptName);
+            }
+            if (deptID != NULL) break; // Thoát nếu tìm theo ID cụ thể
         }
-        if (!found) {
-            strcpy(departments[deptCount], current->EC.Dept);
-            deptCount++;
-        }
-        current = current->next;
+        index = index->next;
     }
 
-    printf("\n========== NHAN VIEN THEO PHONG BAN ==========\n");
-    for (int i = 0; i < deptCount; i++) {
-        printf("\nPhong ban: %s\n", departments[i]);
-        printf("+---------------------------------------------+\n");
-        printf("| %-20s | %-20s |\n", "Ten", "Chuc vu");
-        printf("+---------------------------------------------+\n");
-
-        current = EDNode;
-        while (current != NULL) {
-            if (strcmp(current->EC.Dept, departments[i]) == 0) {
-                printf("| %-20s | %-20s |\n", current->PD.Name, current->EC.Pos);
-            }
-            current = current->next;
-        }
-        printf("+---------------------------------------------+\n");
+    if (!found && deptID != NULL) {
+        printf("No department found with ID: %s\n", deptID);
+    } else if (!found) {
+        printf("No departments found.\n");
     }
-    printf("==============================================\n");
+
+    printf("\nPress Enter to continue...\n");
+    getchar();
 }
 
 //UPDATE FUNCTIONS
@@ -1458,6 +1477,17 @@ struct LayOffNode* findLayOffData(const char* employeeID) {
     
     printf("No data found in Lay Off Data for Employee ID: %s\n", employeeID);
     return NULL; // Return NULL if no data is found
+}
+
+int findDepartment(const char* deptID) {
+    struct DepartmentNode* current = DeptList;
+    while (current != NULL) {
+        if (strcmp(current->Dept.DeptID, deptID) == 0) {
+            return 1; // Tìm thấy
+        }
+        current = current->next;
+    }
+    return 0; // Không tìm thấy
 }
 
 // DELETE FUNCTIONS
@@ -1948,6 +1978,7 @@ void freeAllLists() {
 int main(){
     int choice1, choice2, choice3;
     char employeeID_tmp[100];
+    char deptID_tmp[50];
     PersonalData newPD;
     EmploymentContract newEC;
     Insurance newI;
@@ -1976,9 +2007,8 @@ int main(){
         printf("5. Delete an Employee\n");
         printf("6. Generate Report\n");
         printf("7. Manage Departments\n");
-        printf("8. Display Employees by Department\n");
-        printf("9. Department Statistics\n");
-        printf("10.Exit\n");
+        printf("8. Department Statistics\n");
+        printf("9. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice1);
         clear_input_buffer();
@@ -2134,7 +2164,9 @@ int main(){
                 printf("1. Add New Department\n");
                 printf("2. Update Department\n");
                 printf("3. Delete Department\n");
-                printf("4. Return\n");
+                printf("4. Display All Departments and Employees\n");
+                printf("5. Find and Display Department by ID\n");
+                printf("6. Return\n");
                 printf("Enter your choice: ");
                 scanf("%d", &choice2);
                 clear_input_buffer();
@@ -2149,18 +2181,24 @@ int main(){
                         deleteDepartment();
                         break;
                     case 4:
+                        DepartmentTraverse(NULL);
+                        break;
+                    case 5: 
+                        getStringInput(deptID_tmp, sizeof(deptID_tmp), "Enter Department ID: ");
+                        if (findDepartment(deptID_tmp)) {
+                            DepartmentTraverse(deptID_tmp);
+                        } else {
+                            printf("Department ID not found.\n");
+                        }
                         break;
                     default:
                         printf("Invalid choice. Please try again\n");
                 }
                 break;
             case 8: 
-                 DepartmentTraverse();
-                 break;
-            case 9: 
                  DepartmentReport();
                  break;
-            case 10: 
+            case 9: 
                  printf("Exiting program. Goodbye!\n");
                  freeAllLists();
                  break;
@@ -2170,7 +2208,7 @@ int main(){
 
         printf("\nPress Enter to continue...\n");
         getchar();
-    } while (choice1 != 10);
+    } while (choice1 != 9);
     
     return 0;
 
